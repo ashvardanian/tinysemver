@@ -138,7 +138,7 @@ def update_file_with_regex(
     print(f"Updated file {file_path} with new version {new_version}")
 
 
-def main(
+def bump(
     dry_run: bool = False,
     verbose: bool = False,
     major_verbs: List[str] = ["breaking", "break", "major"],
@@ -148,7 +148,7 @@ def main(
     changelog_file: PathLike = "CHANGELOG.md",  # relative or absolute path to the changelog file
     version_file: PathLike = "VERSION",  # relative or absolute path to the version file
     patch_files: List[Tuple[str, PathLike]] = None,
-) -> None:
+) -> SemVer:
 
     # Check that the repository indeed contains a .git folder
     repository_path = os.path.abspath(path) if path else os.getcwd()
@@ -242,16 +242,18 @@ def main(
     create_tag(repository_path, new_version)
 
 
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Tiny SemVer")
+def main():
+    parser = argparse.ArgumentParser(description="Tiny Semantic Versioning tool")
     parser.add_argument(
         "--dry-run",
         action="store_true",
+        default=False,
         help="Do not create a new tag",
     )
     parser.add_argument(
         "--verbose",
         action="store_true",
+        default=False,
         help="Print more information",
     )
     parser.add_argument(
@@ -289,14 +291,22 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    main(
-        path=args.path,
-        dry_run=args.dry_run,
-        verbose=args.verbose,
-        major_verbs=args.major_verbs,
-        minor_verbs=args.minor_verbs,
-        patch_verbs=args.patch_verbs,
-        changelog_file=args.changelog_file,
-        version_file=args.version_file,
-        patch_files=args.patch_file,
-    )
+    try:
+        bump(
+            path=args.path,
+            dry_run=args.dry_run,
+            verbose=args.verbose,
+            major_verbs=args.major_verbs,
+            minor_verbs=args.minor_verbs,
+            patch_verbs=args.patch_verbs,
+            changelog_file=args.changelog_file,
+            version_file=args.version_file,
+            patch_files=args.patch_file,
+        )
+    except Exception as e:
+        print(f"Failed: {e}")
+        exit(1)
+
+
+if __name__ == "__main__":
+    main()
