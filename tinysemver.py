@@ -27,11 +27,13 @@ Example:
 import argparse
 import subprocess
 import re
+import os
 
-from typing import List, Tuple, Literal
+from typing import List, Tuple, Literal, Union
 
 SemVer = Tuple[int, int, int]
 BumpType = Literal["major", "minor", "patch"]
+PathLike = Union[str, os.PathLike]
 
 
 def get_last_tag() -> str:
@@ -63,19 +65,31 @@ def parse_version(tag: str) -> SemVer:
     return int(match.group(1)), int(match.group(2)), int(match.group(3))
 
 
-def determine_version_bump(commits: List[str]) -> BumpType:
-    major_bump = re.compile(r"^\[major\]")
-    minor_bump = re.compile(r"^\[minor\]")
-    patch_bump = re.compile(r"^\[patch\]")
+def commit_starts_with_verb(commit: str, verb: str) -> bool:
+    if commit.lower().startswith(verb):
+        if (
+            len(commit) == len(verb)
+            or commit[len(verb)].isspace()
+            or commit[len(verb)] == ":"
+        ):
+            return True
+    return False
 
+
+def determine_version_bump(
+    commits: List[str],
+    major_verbs: List[str],
+    minor_verbs: List[str],
+    patch_verbs: List[str],
+) -> BumpType:
     major = minor = patch = False
 
     for commit in commits:
-        if major_bump.match(commit):
+        if any(commit_starts_with_verb(commit, verb) for verb in major_verbs):
             major = True
-        elif minor_bump.match(commit):
+        if any(commit_starts_with_verb(commit, verb) for verb in minor_verbs):
             minor = True
-        elif patch_bump.match(commit):
+        if any(commit_starts_with_verb(commit, verb) for verb in patch_verbs):
             patch = True
 
     if major:
@@ -106,19 +120,36 @@ def create_tag(version: SemVer, push: bool = False) -> None:
     print(f"Created new tag: {tag}")
 
 
+def update_file_with_regex(
+    file_path: str,
+    regex_pattern: str,
+    new_version: str,
+) -> None:
+    with open(file_path, "r") as file:
+        content = file.read()
+
+    new_content = re.sub(regex_pattern, f"\\1{new_version}", content)
+
+    with open(file_path, "w") as file:
+        file.write(new_content)
+
+    print(f"Updated file {file_path} with new version {new_version}")
+
+
 def main(
-    path: str = ".",
     dry_run: bool = False,
     verbose: bool = False,
-    major_verbs: list = ["breaking", "break", "major"],
-    minor_verbs: list = ["feature", "minor", "add", "new"],
-    patch_verbs: list = ["fix", "patch", "bug", "improve"],
-    changelog_file: str = "CHANGELOG.md",  # relative or absolute path to the changelog file
-    version_file: str = "VERSION",  # relative or absolute path to the version file
+    major_verbs: List[str] = ["breaking", "break", "major"],
+    minor_verbs: List[str] = ["feature", "minor", "add", "new"],
+    patch_verbs: List[str] = ["fix", "patch", "bug", "improve"],
+    path: PathLike = ".",
+    changelog_file: PathLike = "CHANGELOG.md",  # relative or absolute path to the changelog file
+    version_file: PathLike = "VERSION",  # relative or absolute path to the version file
+    patch_files: List[Tuple[str, PathLike]] = None,
 ) -> None:
 
     # Check that the repository indeed contains a .git folder
-    if not os.path.isdir(".git"):
+    if not os.path.isdir(os.path.join(path, ".git")):
         print("No .git folder found in the repository.")
         return
 
@@ -158,24 +189,47 @@ def main(
             f"Current version: {current_version[0]}.{current_version[1]}.{current_version[2]}"
         )
 
-    bump_type = determine_version_bump(commits)
+    bump_type = determine_version_bump(commits, major_verbs, minor_verbs, patch_verbs)
     new_version = bump_version(current_version, bump_type)
     if verbose:
         print(
             f"Bumping version to: {new_version[0]}.{new_version[1]}.{new_version[2]} (type: {bump_type})"
         )
 
-    if not dry_run:
-        create_tag(new_version)
+    new_version_str = f"{new_version[0]}.{new_version[1]}.{new_version[2]}"
+
+    if dry_run:
+        return
+
+    create_tag(new_version)
+
+    # Update the version file
+    update_file_with_regex(version_file, r"(.*)", new_version_str)
+
+    # Update the changelog file
+    if os.path.isfile(changelog_file):
+        with open(changelog_file, "a") as file:
+            file.write(f"\n## {new_version_str}\n")
+        print(f"Updated changelog file {changelog_file}")
+
+    # Update all patch files
+    if patch_files:
+        for regex_pattern, file_path in patch_files:
+            update_file_with_regex(file_path, regex_pattern, new_version_str)
 
 
 if __name__ == "__main__":
-
     parser = argparse.ArgumentParser(description="Tiny SemVer")
     parser.add_argument(
-        "--dry-run", action="store_true", help="Do not create a new tag"
+        "--dry-run",
+        action="store_true",
+        help="Do not create a new tag",
     )
-    parser.add_argument("--verbose", action="store_true", help="Print more information")
+    parser.add_argument(
+        "--verbose",
+        action="store_true",
+        help="Print more information",
+    )
     parser.add_argument(
         "--major-verbs",
         help="Comma-separated list of major verbs, like 'breaking,break,major'",
@@ -189,12 +243,36 @@ if __name__ == "__main__":
         help="Comma-separated list of patch verbs, like 'fix,patch,bug,improve'",
     )
     parser.add_argument(
-        "--changelog-file", help="Path to the changelog file, like 'CHANGELOG.md'"
+        "--changelog-file",
+        help="Path to the changelog file, like 'CHANGELOG.md'",
     )
     parser.add_argument(
-        "--version-file", help="Path to the version file, like 'VERSION'"
+        "--version-file",
+        help="Path to the version file, like 'VERSION'",
+    )
+    parser.add_argument(
+        "--patch-file",
+        nargs=2,
+        action="append",
+        metavar=("REGEX", "FILE"),
+        help="Regex pattern and file path to update version",
+    )
+    parser.add_argument(
+        "--path",
+        help="Path to the git repository",
+        default=".",
     )
 
     args = parser.parse_args()
 
-    main(dry_run=args.dry_run, verbose=args.verbose)
+    main(
+        path=args.path,
+        dry_run=args.dry_run,
+        verbose=args.verbose,
+        major_verbs=args.major_verbs,
+        minor_verbs=args.minor_verbs,
+        patch_verbs=args.patch_verbs,
+        changelog_file=args.changelog_file,
+        version_file=args.version_file,
+        patch_files=args.patch_file,
+    )
