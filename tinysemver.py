@@ -36,22 +36,24 @@ BumpType = Literal["major", "minor", "patch"]
 PathLike = Union[str, os.PathLike]
 
 
-def get_last_tag() -> str:
+def get_last_tag(repository_path: PathLike) -> str:
     result = subprocess.run(
         ["git", "describe", "--tags", "--abbrev=0"],
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
+        cwd=repository_path,
     )
     if result.returncode != 0:
         return None
     return result.stdout.strip().decode("utf-8")
 
 
-def get_commits_since_tag(tag) -> List[str]:
+def get_commits_since_tag(repository_path: PathLike, tag: str) -> List[str]:
     result = subprocess.run(
         ["git", "log", f"{tag}..HEAD", "--pretty=format:%s"],
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
+        cwd=repository_path,
     )
     if result.returncode != 0:
         return []
@@ -112,11 +114,11 @@ def bump_version(version: SemVer, bump_type: BumpType) -> SemVer:
         return major, minor, patch + 1
 
 
-def create_tag(version: SemVer, push: bool = False) -> None:
+def create_tag(repository_path: PathLike, version: SemVer, push: bool = False) -> None:
     tag = f"v{version[0]}.{version[1]}.{version[2]}"
-    subprocess.run(["git", "tag", tag])
+    subprocess.run(["git", "tag", tag], cwd=repository_path)
     if push:
-        subprocess.run(["git", "push", "origin", tag])
+        subprocess.run(["git", "push", "origin", tag], cwd=repository_path)
     print(f"Created new tag: {tag}")
 
 
@@ -142,16 +144,37 @@ def main(
     major_verbs: List[str] = ["breaking", "break", "major"],
     minor_verbs: List[str] = ["feature", "minor", "add", "new"],
     patch_verbs: List[str] = ["fix", "patch", "bug", "improve"],
-    path: PathLike = ".",
+    path: PathLike = None,  # takes current directory as default
     changelog_file: PathLike = "CHANGELOG.md",  # relative or absolute path to the changelog file
     version_file: PathLike = "VERSION",  # relative or absolute path to the version file
     patch_files: List[Tuple[str, PathLike]] = None,
 ) -> None:
 
     # Check that the repository indeed contains a .git folder
-    if not os.path.isdir(os.path.join(path, ".git")):
+    repository_path = os.path.abspath(path) if path else os.getcwd()
+    if not os.path.isdir(os.path.join(repository_path, ".git")):
         print("No .git folder found in the repository.")
         return
+
+    # Ensure paths are relative to the provided working directory
+    def normalize_path(file_path: str) -> str:
+        if not file_path:
+            return None
+        if os.path.isabs(file_path):
+            return file_path
+        return os.path.join(repository_path, file_path)
+
+    changelog_file = normalize_path(changelog_file)
+    version_file = normalize_path(version_file)
+    if patch_files:
+        patch_files = [(pattern, normalize_path(file)) for pattern, file in patch_files]
+
+    assert not os.path.exists(version_file) or os.path.isfile(
+        version_file
+    ), "Version file must be a regular file"
+    assert not os.path.exists(changelog_file) or os.path.isfile(
+        changelog_file
+    ), "Changelog file must be a regular file"
 
     # Normalizing the input arguments
     if isinstance(major_verbs, str):
@@ -168,12 +191,12 @@ def main(
         patch_verbs = ["fix", "patch", "bug", "improve"]
 
     # The actual logic begins here
-    last_tag = get_last_tag()
+    last_tag = get_last_tag(repository_path)
     if not last_tag:
         print("No tags found in the repository.")
         return
 
-    commits = get_commits_since_tag(last_tag)
+    commits = get_commits_since_tag(repository_path, last_tag)
     if not commits:
         print("No new commits since the last tag.")
         return
@@ -201,13 +224,12 @@ def main(
     if dry_run:
         return
 
-    create_tag(new_version)
-
     # Update the version file
-    update_file_with_regex(version_file, r"(.*)", new_version_str)
+    if version_file:
+        update_file_with_regex(version_file, r"(.*)", new_version_str)
 
     # Update the changelog file
-    if os.path.isfile(changelog_file):
+    if changelog_file:
         with open(changelog_file, "a") as file:
             file.write(f"\n## {new_version_str}\n")
         print(f"Updated changelog file {changelog_file}")
@@ -216,6 +238,8 @@ def main(
     if patch_files:
         for regex_pattern, file_path in patch_files:
             update_file_with_regex(file_path, regex_pattern, new_version_str)
+
+    create_tag(repository_path, new_version)
 
 
 if __name__ == "__main__":
