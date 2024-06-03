@@ -157,9 +157,9 @@ def bump(
 
     # Check that the repository indeed contains a .git folder
     repository_path = os.path.abspath(path) if path else os.getcwd()
-    if not os.path.isdir(os.path.join(repository_path, ".git")):
-        print("No .git folder found in the repository.")
-        return
+    assert os.path.isdir(
+        os.path.join(repository_path, ".git")
+    ), f"Not a Git repository: {repository_path}"
 
     # Ensure paths are relative to the provided working directory
     def normalize_path(file_path: str) -> str:
@@ -174,12 +174,12 @@ def bump(
     if patch_files:
         patch_files = [(pattern, normalize_path(file)) for pattern, file in patch_files]
 
-    assert not os.path.exists(version_file) or os.path.isfile(
-        version_file
-    ), "Version file must be a regular file"
-    assert not os.path.exists(changelog_file) or os.path.isfile(
-        changelog_file
-    ), "Changelog file must be a regular file"
+    assert not version_file or (
+        not os.path.exists(version_file) or os.path.isfile(version_file)
+    ), f"Version file is missing or isn't a regular file: {version_file}"
+    assert not changelog_file or (
+        not os.path.exists(changelog_file) or os.path.isfile(changelog_file)
+    ), f"Changelog file is missing or isn't a regular file: {changelog_file}"
 
     # Normalizing the input arguments
     if isinstance(major_verbs, str):
@@ -197,14 +197,10 @@ def bump(
 
     # The actual logic begins here
     last_tag = get_last_tag(repository_path)
-    if not last_tag:
-        print("No tags found in the repository.")
-        return
+    assert last_tag, f"No tags found in the repository: {repository_path}"
 
     commits = get_commits_since_tag(repository_path, last_tag)
-    if not commits:
-        print("No new commits since the last tag.")
-        return
+    assert len(commits), f"No new commits since the last {last_tag} tag, aborting."
 
     if verbose:
         print("Commits since last tag:")
