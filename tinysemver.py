@@ -30,6 +30,7 @@ import re
 import os
 
 from typing import List, Tuple, Literal, Union
+from datetime import datetime
 
 SemVer = Tuple[int, int, int]
 BumpType = Literal["major", "minor", "patch"]
@@ -83,30 +84,25 @@ def commit_starts_with_verb(commit: str, verb: str) -> bool:
     return False
 
 
-def determine_version_bump(
+def group_commits(
     commits: List[str],
     major_verbs: List[str],
     minor_verbs: List[str],
     patch_verbs: List[str],
-) -> BumpType:
-    major = minor = patch = False
+) -> Tuple[List[str], List[str], List[str]]:
+    major_commits = []
+    minor_commits = []
+    patch_commits = []
 
     for commit in commits:
         if any(commit_starts_with_verb(commit, verb) for verb in major_verbs):
-            major = True
+            major_commits.append(commit)
         if any(commit_starts_with_verb(commit, verb) for verb in minor_verbs):
-            minor = True
+            minor_commits.append(commit)
         if any(commit_starts_with_verb(commit, verb) for verb in patch_verbs):
-            patch = True
+            patch_commits.append(commit)
 
-    if major:
-        return "major"
-    if minor:
-        return "minor"
-    if patch:
-        return "patch"
-
-    return "patch"  # Default to patch if no prefix found
+    return major_commits, minor_commits, patch_commits
 
 
 def bump_version(version: SemVer, bump_type: BumpType) -> SemVer:
@@ -135,7 +131,7 @@ def update_file_with_regex(
     with open(file_path, "r") as file:
         content = file.read()
 
-    new_content = re.sub(regex_pattern, f"\\1{new_version}", content)
+    new_content = re.sub(regex_pattern, new_version, content)
 
     with open(file_path, "w") as file:
         file.write(new_content)
@@ -213,34 +209,61 @@ def bump(
             f"Current version: {current_version[0]}.{current_version[1]}.{current_version[2]}"
         )
 
-    bump_type = determine_version_bump(commits, major_verbs, minor_verbs, patch_verbs)
+    # Unzip commits history to infer the type of version bump,
+    # and prepare changelogs down the road.
+    major_commits, minor_commits, patch_commits = group_commits(
+        commits, major_verbs, minor_verbs, patch_verbs
+    )
+    assert (
+        len(major_commits) + len(minor_commits) + len(patch_commits)
+    ), "No commit categories found to bump the version: " + ", ".join(commits)
+
+    # Determine the type of version bump
+    if len(major_commits):
+        bump_type = "major"
+    elif len(minor_commits):
+        bump_type = "minor"
+    else:
+        bump_type = "patch"
     new_version = bump_version(current_version, bump_type)
     if verbose:
         print(
             f"Bumping version to: {new_version[0]}.{new_version[1]}.{new_version[2]} (type: {bump_type})"
         )
 
-    new_version_str = f"{new_version[0]}.{new_version[1]}.{new_version[2]}"
-
-    if dry_run:
-        return
-
     # Update the version file
+    new_version_str = f"{new_version[0]}.{new_version[1]}.{new_version[2]}"
     if version_file:
-        update_file_with_regex(version_file, r"(.*)", new_version_str)
+        if not dry_run:
+            update_file_with_regex(version_file, r"(.*)", new_version_str)
 
     # Update the changelog file
     if changelog_file:
-        with open(changelog_file, "a") as file:
-            file.write(f"\n## {new_version_str}\n")
-        print(f"Updated changelog file {changelog_file}")
+        now = datetime.now()
+        changes = f"## {now:%B %d, %Y}: v{new_version_str}\n"
+        if len(major_commits):
+            changes += f"\n### Major\n" + "\n".join(f"- {c}" for c in major_commits)
+        if len(minor_commits):
+            changes += f"\n### Minor\n" + "\n".join(f"- {c}" for c in minor_commits)
+        if len(patch_commits):
+            changes += f"\n### Patch\n" + "\n".join(f"- {c}" for c in patch_commits)
+
+        if not dry_run:
+            with open(changelog_file, "a") as file:
+                file.write(changes)
+            if verbose:
+                print(f"Updated changelog file {changelog_file}")
+        else:
+            print(f"Changelog updates:\n{changes}")
 
     # Update all patch files
     if patch_files:
         for regex_pattern, file_path in patch_files:
-            update_file_with_regex(file_path, regex_pattern, new_version_str)
+            if not dry_run:
+                update_file_with_regex(file_path, regex_pattern, new_version_str)
 
-    create_tag(repository_path, new_version)
+    if not dry_run:
+        create_tag(repository_path, new_version)
 
 
 def main():
