@@ -23,6 +23,22 @@ Example:
     Each of them must be followed by a RegEx pattern and a file path.
     The RegEx pattern must contain a capturing group to extract the version number,
     that will be replaced by the new version number.
+
+By default, following conventions are used:
+
+    - The repository must be a Git repository.
+    - It must contain a "VERSION" and "CHANGELOG.md" files in the root directory.
+    - The changelog is append-only - sorted in chronological order.
+
+Setting up a new project:
+
+    $ git init # Initialize a new Git repository
+    $ echo "0.1.0" > VERSION # Create a version file
+    $ echo "# Changelog" > CHANGELOG.md # Create a changelog file
+    $ git add VERSION CHANGELOG.md # Add the files to the repository
+    $ git commit -m "Add: Initial files" # Create the first commit
+    $ git tag v0.1.0 # Create the first tag
+
 """
 import argparse
 import subprocess
@@ -123,20 +139,32 @@ def create_tag(repository_path: PathLike, version: SemVer, push: bool = False) -
     print(f"Created new tag: {tag}")
 
 
-def update_file_with_regex(
+def patch_with_regex(
     file_path: str,
     regex_pattern: str,
     new_version: str,
+    dry_run: bool = False,
 ) -> None:
     with open(file_path, "r") as file:
         content = file.read()
 
-    new_content = re.sub(regex_pattern, new_version, content)
+    new_content = content
+    matches = list(re.finditer(regex_pattern, content))
 
-    with open(file_path, "w") as file:
-        file.write(new_content)
+    for match in matches:
+        old_line = match.group(0)
+        new_line = re.sub(regex_pattern, new_version, old_line, 1)
+        new_content = new_content.replace(old_line, new_line, 1)
 
-    print(f"Updated file {file_path} with new version {new_version}")
+        if dry_run:
+            print(f"Changing {file_path}:{match.start() + 1}")
+            print(f"-{old_line}")
+            print(f"+{new_line}")
+
+    if not dry_run:
+        with open(file_path, "w") as file:
+            file.write(new_content)
+        print(f"Updated file {file_path} with new version {new_version}")
 
 
 def bump(
@@ -159,7 +187,7 @@ def bump(
 
     # Ensure paths are relative to the provided working directory
     def normalize_path(file_path: str) -> str:
-        if not file_path:
+        if not file_path or len(file_path) == 0:
             return None
         if os.path.isabs(file_path):
             return file_path
@@ -234,8 +262,7 @@ def bump(
     # Update the version file
     new_version_str = f"{new_version[0]}.{new_version[1]}.{new_version[2]}"
     if version_file:
-        if not dry_run:
-            update_file_with_regex(version_file, r"(.*)", new_version_str)
+        patch_with_regex(version_file, r"(.*)", new_version_str, dry_run)
 
     # Update the changelog file
     if changelog_file:
@@ -260,7 +287,7 @@ def bump(
     if patch_files:
         for regex_pattern, file_path in patch_files:
             if not dry_run:
-                update_file_with_regex(file_path, regex_pattern, new_version_str)
+                patch_with_regex(file_path, regex_pattern, new_version_str, dry_run)
 
     if not dry_run:
         create_tag(repository_path, new_version)
@@ -294,10 +321,12 @@ def main():
     )
     parser.add_argument(
         "--changelog-file",
+        default="CHANGELOG.md",
         help="Path to the changelog file, like 'CHANGELOG.md'",
     )
     parser.add_argument(
         "--version-file",
+        default="VERSION",
         help="Path to the version file, like 'VERSION'",
     )
     parser.add_argument(
@@ -309,8 +338,8 @@ def main():
     )
     parser.add_argument(
         "--path",
-        help="Path to the git repository",
         default=".",
+        help="Path to the git repository",
     )
 
     args = parser.parse_args()
