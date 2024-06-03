@@ -57,7 +57,12 @@ def get_commits_since_tag(repository_path: PathLike, tag: str) -> List[str]:
     )
     if result.returncode != 0:
         return []
-    return result.stdout.strip().decode("utf-8").split("\n")
+
+    # Filter out empty lines and lines with only one character
+    lines = result.stdout.strip().decode("utf-8").split("\n")
+    lines = [line.strip() for line in lines if line.strip()]
+    lines = [line for line in lines if len(line) > 1]
+    return lines
 
 
 def parse_version(tag: str) -> SemVer:
