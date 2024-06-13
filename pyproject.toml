@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "TinySemVer"
-version = "0.1.0"
-description = "A tiny Semantic Versioning automation tool for Git repositories."
+version = "1.1.3"
+description = "Tiny Semantic Versioning (SemVer) library, that doesn't depend on 300K lines of JavaScript"
 readme = "README.md"
 license = { file = "LICENSE" }
 authors = [
