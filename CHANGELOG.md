@@ -2,7 +2,19 @@
 
 ## June 2, 2024: v1.0.0
 
-Add:
+- Add: Initial implementation
+- Add: `--update-version-in` support
 
-- Initial implementation
-- `--update-version-in` support
+## June 13, 2024: v1.1.0
+
+### Minor
+
+- Add: Flag for partial SemVer updates
+
+### Patch
+
+- Improve: Log file patches
+- Improve: Grouping CHANGELOG
+- Improve: `assert`-s instead of `print`-s
+- Fix: Filtering empty lines from commit logs
+- Fix: Entry-point resolution## June 13, 2024: v1.1.0

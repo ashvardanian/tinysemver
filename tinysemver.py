@@ -139,12 +139,12 @@ def bump_version(version: SemVer, bump_type: BumpType) -> SemVer:
 
 def create_tag(repository_path: PathLike, version: SemVer, user_name: str, user_email: str, push: bool = False) -> None:
     tag = f"v{version[0]}.{version[1]}.{version[2]}"
-    subprocess.run(
-        ["git", "tag", "-a", tag, "-m", f"Release: {tag}", f"--author={user_name} <{user_email}>"],
-        cwd=repository_path,
-    )
+    env = os.environ.copy()
+    env["GIT_COMMITTER_NAME"] = user_name
+    env["GIT_COMMITTER_EMAIL"] = user_email
+    subprocess.run(["git", "tag", "-a", tag, "-m", f"Release: {tag}"], cwd=repository_path, env=env)
     if push:
-        subprocess.run(["git", "push", "origin", tag], cwd=repository_path)
+        subprocess.run(["git", "push", "origin", tag], cwd=repository_path, env=env)
     print(f"Created new tag: {tag}")
 
 
@@ -272,13 +272,13 @@ def bump(
 
     if changelog_file:
         now = datetime.now()
-        changes = f"## {now:%B %d, %Y}: v{new_version_str}\n"
+        changes = f"\n## {now:%B %d, %Y}: v{new_version_str}\n"
         if len(major_commits):
-            changes += f"\n### Major\n" + "\n".join(f"- {c}" for c in major_commits)
+            changes += f"\n### Major\n\n" + "\n".join(f"- {c}" for c in major_commits) + "\n"
         if len(minor_commits):
-            changes += f"\n### Minor\n" + "\n".join(f"- {c}" for c in minor_commits)
+            changes += f"\n### Minor\n\n" + "\n".join(f"- {c}" for c in minor_commits) + "\n"
         if len(patch_commits):
-            changes += f"\n### Patch\n" + "\n".join(f"- {c}" for c in patch_commits)
+            changes += f"\n### Patch\n\n" + "\n".join(f"- {c}" for c in patch_commits) + "\n"
 
         print(f"Will update file: {changelog_file}")
         if verbose:
