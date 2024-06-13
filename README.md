@@ -1,7 +1,7 @@
 # Tiny Sem Ver
 
 Minimalistic [Semantic Versioning](https://semver.org/) package for projects following [Conventional Commits](https://www.conventionalcommits.org/) in a single short Python file.
-In English, if your commit messages look like `feat: add new feature` or `fix: bugfix`, this package will automate releasing new "GIT tags" based on the commit messages.
+In plain English, if your commit messages look like `feat: add new feature` or `fix: bugfix`, this package will automate releasing new "GIT tags" based on the commit messages.
 Here is how to integrate it into your project CI:
 
 ```sh
@@ -22,18 +22,28 @@ $ tinysemver --dry-run --verbose \
     --patch-verbs 'fix,patch,bug,improve' \
     --changelog-file 'CHANGELOG.md' \
     --version-file 'VERSION' \
-    --patch-file '"version": "(.*)"' 'package.json' \
-    --patch-file '^version: (.*)' 'CITATION.cff'
+    --update-version-in 'package.json' '"version": "(.*)"' \
+    --update-version-in 'CITATION.cff' '^version: (.*)' \
+    --update-major-version-in 'include/stringzilla/stringzilla.h' '^#define STRINGZILLA_VERSION_MAJOR (.*)' \
+    --update-minor-version-in 'include/stringzilla/stringzilla.h' '^#define STRINGZILLA_VERSION_MINOR (.*)' \
+    --update-patch-version-in 'include/stringzilla/stringzilla.h' '^#define STRINGZILLA_VERSION_PATCH (.*)'
 > Current version: 1.2.2
+> ? Commits since last tag: 3                   # Only in verbose mode
+> # 5579972: Improve: Log file patches          # Only in verbose mode
+> # de645ea: Improve: Grouping CHANGELOG        # Only in verbose mode
 > Next version: 1.3.0
-> ✓ Found changelog file: CHANGELOG.md
-> ✓ Found version file: VERSION
-> ✓ Found patch file: package.json
->   Will update line 5 with "1.2.2" to:
->   "version": "1.3.0",
-> ✓ Found patch file: CITATION.cff
->   Will update line 7 with "1.2.2" to:
->   version: 1.3.0
+> Will update file: VERSION:0
+> - 1.2.2                                       # Only in verbose mode
+> + 1.3.0                                       # Only in verbose mode
+> Will update file: package.json:5
+> - "version": "1.2.2"                          # Only in verbose mode
+> + "version": "1.3.0"                          # Only in verbose mode
+> Will update file: CITATION.cff:7
+> - version: 1.2.2                              # Only in verbose mode
+> + version: 1.3.0                              # Only in verbose mode
+> Appending to changelog file: CHANGELOG.md
+> = skipping 250 lines                          # Only in verbose mode
+> + addng 30 lines                              # Only in verbose mode
 ```
 
 Alternatively, you can just ask for `--help`:
@@ -142,3 +152,47 @@ For reference, according to SemVer 2.0, all [following versions](https://regex10
 ```
 
 Probably very useful for 2-3 projects, I didn't need to support any of them yet.
+
+## Examples
+
+Assembling RegEx queries can be hard.
+Luckily, there aren't too mnay files to update in most projects.
+Below is an example of a pipeline for the USearch project, that has bindings to 10 programming languages.
+Feel free to add other sources and examples.
+
+```sh
+$ mkdir -p example
+
+$ wget https://github.com/unum-cloud/usearch/raw/main/VERSION -O example/
+$ wget https://github.com/unum-cloud/usearch/raw/main/CHANGELOG.md -O example/ # Missing
+$ wget https://github.com/unum-cloud/usearch/raw/main/CITATION.cff -O example/
+$ wget https://github.com/unum-cloud/usearch/raw/main/CMakeLists.txt -O example/
+$ wget https://github.com/unum-cloud/usearch/raw/main/Cargo.toml -O example/
+$ wget https://github.com/unum-cloud/usearch/raw/main/package.json -O example/
+$ wget https://github.com/unum-cloud/usearch/raw/main/conanfile.py -O example/
+$ wget https://github.com/unum-cloud/usearch/raw/main/README.md -O example/
+$ wget https://github.com/unum-cloud/usearch/raw/main/wasmer.toml -O example/
+$ wget https://github.com/unum-cloud/usearch/raw/main/csharp/nuget/nuget-package.props -O example/
+$ wget https://github.com/unum-cloud/usearch/raw/main/include/usearch/index.hpp -O example/
+
+# You can match the semantiv ersion part with a generic wildcard like: .*
+# But it's recommended to stick to a stricter format: \d+\.\d+\.\d+
+$ tinysemver --dry-run --verbose \
+    --major-verbs 'breaking,break,major' \
+    --minor-verbs 'feature,minor,add,new' \
+    --patch-verbs 'fix,patch,bug,improve' \
+    --version-file 'example/VERSION' \
+    --changelog-file 'example/CHANGELOG.md' \
+    --update-version-in 'example/CITATION.cff' '^version: (\d+\.\d+\.\d+)' \
+    --update-version-in 'example/CMakeLists.txt' '\sVERSION (\d+\.\d+\.\d+)' \
+    --update-version-in 'example/Cargo.toml' '^version = "(\d+\.\d+\.\d+)"' \
+    --update-version-in 'example/package.json' '"version": "(\d+\.\d+\.\d+)"' \
+    --update-version-in 'example/conanfile.py' '\sversion = "(\d+\.\d+\.\d+)"' \
+    --update-version-in 'example/README.md' '^version = \{(\d+\.\d+\.\d+)\}' \
+    --update-version-in 'example/wasmer.toml' '^version = "(\d+\.\d+\.\d+)"' \
+    --update-version-in 'example/nuget-package.props' '(\d+\.\d+\.\d+)\<\/Version\>' \
+    --update-major-version-in 'example/index.hpp' '^#define USEARCH_VERSION_MAJOR (\d)' \
+    --update-minor-version-in 'example/index.hpp' '^#define USEARCH_VERSION_MINOR (\d)' \
+    --update-patch-version-in 'example/index.hpp' '^#define USEARCH_VERSION_PATCH (\d)' \
+    --path .
+```

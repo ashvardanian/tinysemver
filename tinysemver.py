@@ -16,15 +16,18 @@ Example:
         --patch-verbs 'fix,patch,bug,improve' \
         --changelog-file 'CHANGELOG.md' \
         --version-file 'VERSION' \
-        --patch-file '"version": "(.*)"' 'package.json' \
-        --patch-file '^version: (.*)' 'CITATION.cff'
+        --update-version-in 'package.json' '"version": "(.*)"' \
+        --update-version-in 'CITATION.cff' '^version: (.*)' \
+        --update-major-version-in 'include/stringzilla/stringzilla.h' '^#define STRINGZILLA_VERSION_MAJOR (.*)' \
+        --update-minor-version-in 'include/stringzilla/stringzilla.h' '^#define STRINGZILLA_VERSION_MINOR (.*)' \
+        --update-patch-version-in 'include/stringzilla/stringzilla.h' '^#define STRINGZILLA_VERSION_PATCH (.*)'
     
-    Multiple "--patch-file" arguments can be passed to update multiple files.
-    Each of them must be followed by a RegEx pattern and a file path.
+    Multiple "--update-version-in" arguments can be passed to update multiple files.
+    Each of them must be followed by a file path and a RegEx pattern.
     The RegEx pattern must contain a capturing group to extract the version number,
     that will be replaced by the new version number.
 
-By default, following conventions are used:
+By default, the following conventions are used:
 
     - The repository must be a Git repository.
     - It must contain a "VERSION" and "CHANGELOG.md" files in the root directory.
@@ -44,7 +47,6 @@ import argparse
 import subprocess
 import re
 import os
-
 from typing import List, Tuple, Literal, Union
 from datetime import datetime
 
@@ -65,21 +67,20 @@ def get_last_tag(repository_path: PathLike) -> str:
     return result.stdout.strip().decode("utf-8")
 
 
-def get_commits_since_tag(repository_path: PathLike, tag: str) -> List[str]:
+def get_commits_since_tag(repository_path: PathLike, tag: str) -> Tuple[List[str], List[str]]:
     result = subprocess.run(
-        ["git", "log", f"{tag}..HEAD", "--pretty=format:%s"],
+        ["git", "log", f"{tag}..HEAD", "--pretty=format:%h:%s"],
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
         cwd=repository_path,
     )
     if result.returncode != 0:
-        return []
+        return [], []
 
-    # Filter out empty lines and lines with only one character
     lines = result.stdout.strip().decode("utf-8").split("\n")
-    lines = [line.strip() for line in lines if line.strip()]
-    lines = [line for line in lines if len(line) > 1]
-    return lines
+    hashes = [line.partition(":")[0] for line in lines if line.strip()]
+    commits = [line.partition(":")[2] for line in lines if line.strip()]
+    return hashes, commits
 
 
 def parse_version(tag: str) -> SemVer:
@@ -91,13 +92,18 @@ def parse_version(tag: str) -> SemVer:
 
 def commit_starts_with_verb(commit: str, verb: str) -> bool:
     if commit.lower().startswith(verb):
-        if (
-            len(commit) == len(verb)
-            or commit[len(verb)].isspace()
-            or commit[len(verb)] == ":"
-        ):
+        if len(commit) == len(verb) or commit[len(verb)].isspace() or commit[len(verb)] == ":":
             return True
     return False
+
+
+def normalize_verbs(verbs: Union[str, List[str]], defaults: List[str]) -> List[str]:
+    if isinstance(verbs, str):
+        return [verb.strip("\"'") for verb in verbs.split(",")]
+    elif verbs is None:
+        return defaults
+    else:
+        return verbs
 
 
 def group_commits(
@@ -144,27 +150,38 @@ def patch_with_regex(
     regex_pattern: str,
     new_version: str,
     dry_run: bool = False,
+    verbose: bool = False,
 ) -> None:
+
     with open(file_path, "r") as file:
-        content = file.read()
+        old_content = file.read()
 
-    new_content = content
-    matches = list(re.finditer(regex_pattern, content))
+    def replace_first_group(match):
+        range_to_replace = match.span(1)
+        return match.string[: range_to_replace[0]] + new_version + match.string[range_to_replace[1] :]
 
-    for match in matches:
-        old_line = match.group(0)
-        new_line = re.sub(regex_pattern, new_version, old_line, 1)
-        new_content = new_content.replace(old_line, new_line, 1)
+    # Without using the re.MULTILINE flag,
+    # the ^ and $ anchors match the start and end of the whole string.
+    regex_pattern = re.compile(regex_pattern, re.MULTILINE)
+    matches = list(re.finditer(regex_pattern, old_content))
+    new_content = re.sub(regex_pattern, replace_first_group, old_content, 1)
 
-        if dry_run:
-            print(f"Changing {file_path}:{match.start() + 1}")
-            print(f"-{old_line}")
-            print(f"+{new_line}")
+    non_empty_matches = [m for m in matches if len(m.group(0).strip())]
+    assert len(non_empty_matches) > 0, f"No matches found in: {file_path}"
+
+    for match in non_empty_matches:
+        match_line = old_content.count("\n", 0, match.pos) + 1
+        old_slice = match.group(0)
+        new_slice = re.sub(regex_pattern, replace_first_group, old_slice, 1)
+
+        if verbose:
+            print(f"Will update file: {file_path}:{match_line}")
+            print(f"- {old_slice}")
+            print(f"+ {new_slice}")
 
     if not dry_run:
         with open(file_path, "w") as file:
             file.write(new_content)
-        print(f"Updated file {file_path} with new version {new_version}")
 
 
 def bump(
@@ -176,16 +193,15 @@ def bump(
     path: PathLike = None,  # takes current directory as default
     changelog_file: PathLike = "CHANGELOG.md",  # relative or absolute path to the changelog file
     version_file: PathLike = "VERSION",  # relative or absolute path to the version file
-    patch_files: List[Tuple[str, PathLike]] = None,
+    update_version_in: List[Tuple[PathLike, str]] = None,
+    update_major_version_in: List[Tuple[PathLike, str]] = None,
+    update_minor_version_in: List[Tuple[PathLike, str]] = None,
+    update_patch_version_in: List[Tuple[PathLike, str]] = None,
 ) -> SemVer:
 
-    # Check that the repository indeed contains a .git folder
     repository_path = os.path.abspath(path) if path else os.getcwd()
-    assert os.path.isdir(
-        os.path.join(repository_path, ".git")
-    ), f"Not a Git repository: {repository_path}"
+    assert os.path.isdir(os.path.join(repository_path, ".git")), f"Not a Git repository: {repository_path}"
 
-    # Ensure paths are relative to the provided working directory
     def normalize_path(file_path: str) -> str:
         if not file_path or len(file_path) == 0:
             return None
@@ -195,8 +211,14 @@ def bump(
 
     changelog_file = normalize_path(changelog_file)
     version_file = normalize_path(version_file)
-    if patch_files:
-        patch_files = [(pattern, normalize_path(file)) for pattern, file in patch_files]
+    if update_version_in:
+        update_version_in = [(normalize_path(file), pattern) for file, pattern in update_version_in]
+    if update_major_version_in:
+        update_major_version_in = [(normalize_path(file), pattern) for file, pattern in update_major_version_in]
+    if update_minor_version_in:
+        update_minor_version_in = [(normalize_path(file), pattern) for file, pattern in update_minor_version_in]
+    if update_patch_version_in:
+        update_patch_version_in = [(normalize_path(file), pattern) for file, pattern in update_patch_version_in]
 
     assert not version_file or (
         not os.path.exists(version_file) or os.path.isfile(version_file)
@@ -205,48 +227,30 @@ def bump(
         not os.path.exists(changelog_file) or os.path.isfile(changelog_file)
     ), f"Changelog file is missing or isn't a regular file: {changelog_file}"
 
-    # Normalizing the input arguments
-    if isinstance(major_verbs, str):
-        major_verbs = major_verbs.split(",")
-    elif major_verbs is None:
-        major_verbs = ["breaking", "break", "major"]
-    if isinstance(minor_verbs, str):
-        minor_verbs = minor_verbs.split(",")
-    elif minor_verbs is None:
-        minor_verbs = ["feature", "minor", "add", "new"]
-    if isinstance(patch_verbs, str):
-        patch_verbs = patch_verbs.split(",")
-    elif patch_verbs is None:
-        patch_verbs = ["fix", "patch", "bug", "improve"]
+    major_verbs = normalize_verbs(major_verbs, ["breaking", "break", "major"])
+    minor_verbs = normalize_verbs(minor_verbs, ["feature", "minor", "add", "new"])
+    patch_verbs = normalize_verbs(patch_verbs, ["fix", "patch", "bug", "improve"])
 
-    # The actual logic begins here
     last_tag = get_last_tag(repository_path)
     assert last_tag, f"No tags found in the repository: {repository_path}"
 
-    commits = get_commits_since_tag(repository_path, last_tag)
-    assert len(commits), f"No new commits since the last {last_tag} tag, aborting."
-
-    if verbose:
-        print("Commits since last tag:")
-        for commit in commits:
-            print(f"  {commit}")
-
     current_version = parse_version(last_tag)
     if verbose:
-        print(
-            f"Current version: {current_version[0]}.{current_version[1]}.{current_version[2]}"
-        )
+        print(f"Current version: {current_version[0]}.{current_version[1]}.{current_version[2]}")
 
-    # Unzip commits history to infer the type of version bump,
-    # and prepare changelogs down the road.
-    major_commits, minor_commits, patch_commits = group_commits(
-        commits, major_verbs, minor_verbs, patch_verbs
-    )
+    commits_hashes, commits_messages = get_commits_since_tag(repository_path, last_tag)
+    assert len(commits_hashes), f"No new commits since the last {last_tag} tag, aborting."
+
+    if verbose:
+        print(f"? Commits since last tag: {len(commits_hashes)}")
+        for hash, commit in zip(commits_hashes, commits_messages):
+            print(f"# {hash}: {commit}")
+
+    major_commits, minor_commits, patch_commits = group_commits(commits_messages, major_verbs, minor_verbs, patch_verbs)
     assert (
         len(major_commits) + len(minor_commits) + len(patch_commits)
-    ), "No commit categories found to bump the version: " + ", ".join(commits)
+    ), "No commit categories found to bump the version: " + ", ".join(commits_messages)
 
-    # Determine the type of version bump
     if len(major_commits):
         bump_type = "major"
     elif len(minor_commits):
@@ -255,16 +259,12 @@ def bump(
         bump_type = "patch"
     new_version = bump_version(current_version, bump_type)
     if verbose:
-        print(
-            f"Bumping version to: {new_version[0]}.{new_version[1]}.{new_version[2]} (type: {bump_type})"
-        )
+        print(f"Next version: {new_version[0]}.{new_version[1]}.{new_version[2]} (type: {bump_type})")
 
-    # Update the version file
     new_version_str = f"{new_version[0]}.{new_version[1]}.{new_version[2]}"
     if version_file:
-        patch_with_regex(version_file, r"(.*)", new_version_str, dry_run)
+        patch_with_regex(version_file, r"(.*)", new_version_str, dry_run=dry_run, verbose=verbose)
 
-    # Update the changelog file
     if changelog_file:
         now = datetime.now()
         changes = f"## {now:%B %d, %Y}: v{new_version_str}\n"
@@ -275,19 +275,27 @@ def bump(
         if len(patch_commits):
             changes += f"\n### Patch\n" + "\n".join(f"- {c}" for c in patch_commits)
 
+        print(f"Will update file: {changelog_file}")
+        if verbose:
+            changes_lines = changes.count("\n") + 1
+            print(f"? Appending {changes_lines} lines")
+
         if not dry_run:
             with open(changelog_file, "a") as file:
                 file.write(changes)
-            if verbose:
-                print(f"Updated changelog file {changelog_file}")
-        else:
-            print(f"Changelog updates:\n{changes}")
 
-    # Update all patch files
-    if patch_files:
-        for regex_pattern, file_path in patch_files:
-            if not dry_run:
-                patch_with_regex(file_path, regex_pattern, new_version_str, dry_run)
+    if update_version_in:
+        for file_path, regex_pattern in update_version_in:
+            patch_with_regex(file_path, regex_pattern, new_version_str, dry_run=dry_run, verbose=verbose)
+    if bump_type in ["major"] and update_major_version_in:
+        for file_path, regex_pattern in update_major_version_in:
+            patch_with_regex(file_path, regex_pattern, str(new_version[0]), dry_run=dry_run, verbose=verbose)
+    if bump_type in ["major", "minor"] and update_minor_version_in:
+        for file_path, regex_pattern in update_minor_version_in:
+            patch_with_regex(file_path, regex_pattern, str(new_version[1]), dry_run=dry_run, verbose=verbose)
+    if bump_type in ["major", "minor", "patch"] and update_patch_version_in:
+        for file_path, regex_pattern in update_patch_version_in:
+            patch_with_regex(file_path, regex_pattern, str(new_version[2]), dry_run=dry_run, verbose=verbose)
 
     if not dry_run:
         create_tag(repository_path, new_version)
@@ -330,11 +338,32 @@ def main():
         help="Path to the version file, like 'VERSION'",
     )
     parser.add_argument(
-        "--patch-file",
+        "--update-version-in",
         nargs=2,
         action="append",
-        metavar=("REGEX", "FILE"),
-        help="Regex pattern and file path to update version",
+        metavar=("FILE", "REGEX"),
+        help="File path and regex pattern to update version",
+    )
+    parser.add_argument(
+        "--update-major-version-in",
+        nargs=2,
+        action="append",
+        metavar=("FILE", "REGEX"),
+        help="File path and regex pattern to update major version",
+    )
+    parser.add_argument(
+        "--update-minor-version-in",
+        nargs=2,
+        action="append",
+        metavar=("FILE", "REGEX"),
+        help="File path and regex pattern to update minor version",
+    )
+    parser.add_argument(
+        "--update-patch-version-in",
+        nargs=2,
+        action="append",
+        metavar=("FILE", "REGEX"),
+        help="File path and regex pattern to update patch version",
     )
     parser.add_argument(
         "--path",
@@ -354,10 +383,13 @@ def main():
             patch_verbs=args.patch_verbs,
             changelog_file=args.changelog_file,
             version_file=args.version_file,
-            patch_files=args.patch_file,
+            update_version_in=args.update_version_in,
+            update_major_version_in=args.update_major_version_in,
+            update_minor_version_in=args.update_minor_version_in,
+            update_patch_version_in=args.update_patch_version_in,
         )
     except Exception as e:
-        print(f"Failed: {e}")
+        print(f"! {e}")
         exit(1)
 
 

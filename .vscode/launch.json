@@ -1,0 +1,47 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Python Debugger: Current File with Arguments",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${file}",
+            "console": "integratedTerminal",
+            "args": [
+                "--dry-run",
+                "--verbose",
+                "--major-verbs",
+                "breaking,break,major",
+                "--minor-verbs",
+                "feature,minor,add,new",
+                "--patch-verbs",
+                "fix,patch,bug,improve",
+                "--changelog-file",
+                "example/CHANGELOG.md",
+                "--version-file",
+                "example/VERSION",
+                "--update-version-in",
+                "example/package.json",
+                "\"version\": \"(.*)\"",
+                "--update-version-in",
+                "example/CITATION.cff",
+                "^version: (.*)",
+                "--update-version-in",
+                "example/Cargo.toml",
+                "^version = \"(.*)\"",
+                "--update-major-version-in",
+                "example/index.hpp",
+                "^#define USEARCH_VERSION_MAJOR (.*)",
+                "--update-minor-version-in",
+                "example/index.hpp",
+                "^#define USEARCH_VERSION_MINOR (.*)",
+                "--update-patch-version-in",
+                "example/index.hpp",
+                "^#define USEARCH_VERSION_PATCH (.*)"
+            ]
+        }
+    ]
+}

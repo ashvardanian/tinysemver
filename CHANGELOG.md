@@ -5,4 +5,4 @@
 Add:
 
 - Initial implementation
-- `--patch-file` support
+- `--update-version-in` support
