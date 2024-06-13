@@ -24,3 +24,9 @@
 ### Patch
 
 - Fix: `create_commit` before `create_tag`
+
+## June 13, 2024: v1.1.3
+
+### Patch
+
+- Improve: Push by default
