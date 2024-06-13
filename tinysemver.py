@@ -137,6 +137,17 @@ def bump_version(version: SemVer, bump_type: BumpType) -> SemVer:
         return major, minor, patch + 1
 
 
+def create_commit(repository_path: PathLike, message: str, user_name: str, user_email: str, push: bool = False) -> None:
+    env = os.environ.copy()
+    env["GIT_COMMITTER_NAME"] = user_name
+    env["GIT_COMMITTER_EMAIL"] = user_email
+    subprocess.run(["git", "add", "-A"], cwd=repository_path)
+    subprocess.run(["git", "commit", "-m", message], cwd=repository_path, env=env)
+    if push:
+        subprocess.run(["git", "push"], cwd=repository_path)
+    print(f"Created new commit: {message}")
+
+
 def create_tag(repository_path: PathLike, version: SemVer, user_name: str, user_email: str, push: bool = False) -> None:
     tag = f"v{version[0]}.{version[1]}.{version[2]}"
     env = os.environ.copy()
@@ -303,6 +314,7 @@ def bump(
             patch_with_regex(file_path, regex_pattern, str(new_version[2]), dry_run=dry_run, verbose=verbose)
 
     if not dry_run:
+        create_commit(repository_path, f"Release: {new_version_str}", git_user_name, git_user_email)
         create_tag(repository_path, new_version, git_user_name, git_user_email)
 
 
