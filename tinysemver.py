@@ -137,9 +137,12 @@ def bump_version(version: SemVer, bump_type: BumpType) -> SemVer:
         return major, minor, patch + 1
 
 
-def create_tag(repository_path: PathLike, version: SemVer, push: bool = False) -> None:
+def create_tag(repository_path: PathLike, version: SemVer, user_name: str, user_email: str, push: bool = False) -> None:
     tag = f"v{version[0]}.{version[1]}.{version[2]}"
-    subprocess.run(["git", "tag", tag], cwd=repository_path)
+    subprocess.run(
+        ["git", "tag", "-a", tag, "-m", f"Release: {tag}", f"--author={user_name} <{user_email}>"],
+        cwd=repository_path,
+    )
     if push:
         subprocess.run(["git", "push", "origin", tag], cwd=repository_path)
     print(f"Created new tag: {tag}")
@@ -197,6 +200,8 @@ def bump(
     update_major_version_in: List[Tuple[PathLike, str]] = None,
     update_minor_version_in: List[Tuple[PathLike, str]] = None,
     update_patch_version_in: List[Tuple[PathLike, str]] = None,
+    git_user_name: str = "TinySemVer",
+    git_user_email: str = "tinysemver@ashvardanian.com",
 ) -> SemVer:
 
     repository_path = os.path.abspath(path) if path else os.getcwd()
@@ -298,7 +303,7 @@ def bump(
             patch_with_regex(file_path, regex_pattern, str(new_version[2]), dry_run=dry_run, verbose=verbose)
 
     if not dry_run:
-        create_tag(repository_path, new_version)
+        create_tag(repository_path, new_version, git_user_name, git_user_email)
 
 
 def main():
@@ -370,6 +375,16 @@ def main():
         default=".",
         help="Path to the git repository",
     )
+    parser.add_argument(
+        "--git-user-name",
+        default="TinySemVer",
+        help="Git user name for commits",
+    )
+    parser.add_argument(
+        "--git-user-email",
+        default="tinysemver@ashvardanian.com",
+        help="Git user email for commits",
+    )
 
     args = parser.parse_args()
 
@@ -387,6 +402,8 @@ def main():
             update_major_version_in=args.update_major_version_in,
             update_minor_version_in=args.update_minor_version_in,
             update_patch_version_in=args.update_patch_version_in,
+            git_user_name=args.git_user_name,
+            git_user_email=args.git_user_email,
         )
     except Exception as e:
         print(f"! {e}")
