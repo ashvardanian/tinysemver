@@ -18,3 +18,9 @@
 - Improve: `assert`-s instead of `print`-s
 - Fix: Filtering empty lines from commit logs
 - Fix: Entry-point resolution## June 13, 2024: v1.1.0
+
+## June 13, 2024: v1.1.2
+
+### Patch
+
+- Fix: `create_commit` before `create_tag`
