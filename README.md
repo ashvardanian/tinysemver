@@ -17,7 +17,7 @@ If you need more control over the default specification, here is a list of all a
 
 ```sh
 $ tinysemver --dry-run --verbose \
-    --major-verbs 'breaking,break,major' \ 
+    --major-verbs 'breaking,break,major' \
     --minor-verbs 'feature,minor,add,new' \
     --patch-verbs 'fix,patch,bug,improve' \
     --changelog-file 'CHANGELOG.md' \
