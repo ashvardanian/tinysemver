@@ -47,3 +47,9 @@
 ### Patch
 
 - Improve: Log after push
+
+## June 13, 2024: v1.2.2
+
+### Patch
+
+- Fix: `push` URL resolution
