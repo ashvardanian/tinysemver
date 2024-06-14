@@ -175,7 +175,7 @@ $ wget https://github.com/unum-cloud/usearch/raw/main/wasmer.toml -O example/
 $ wget https://github.com/unum-cloud/usearch/raw/main/csharp/nuget/nuget-package.props -O example/
 $ wget https://github.com/unum-cloud/usearch/raw/main/include/usearch/index.hpp -O example/
 
-# You can match the semantiv ersion part with a generic wildcard like: .*
+# You can match the semantic version part with a generic wildcard like: .*
 # But it's recommended to stick to a stricter format: \d+\.\d+\.\d+
 $ tinysemver --dry-run --verbose \
     --major-verbs 'breaking,break,major' \

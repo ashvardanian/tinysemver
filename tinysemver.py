@@ -47,7 +47,7 @@ import argparse
 import subprocess
 import re
 import os
-from typing import List, Tuple, Literal, Union
+from typing import List, Tuple, Literal, Union, Optional
 from datetime import datetime
 
 SemVer = Tuple[int, int, int]
@@ -137,7 +137,16 @@ def bump_version(version: SemVer, bump_type: BumpType) -> SemVer:
         return major, minor, patch + 1
 
 
-def create_tag(repository_path: PathLike, version: SemVer, user_name: str, user_email: str, push: bool = True) -> None:
+def create_tag(
+    *,  # enforce keyword-only arguments
+    repository_path: PathLike,
+    version: SemVer,
+    user_name: str,
+    user_email: str,
+    github_token: Optional[str] = None,
+    github_repository: Optional[str] = None,
+    push: bool = True,
+) -> None:
     tag = f"v{version[0]}.{version[1]}.{version[2]}"
     env = os.environ.copy()
     env["GIT_COMMITTER_NAME"] = user_name
@@ -147,7 +156,12 @@ def create_tag(repository_path: PathLike, version: SemVer, user_name: str, user_
     subprocess.run(["git", "commit", "-m", message], cwd=repository_path, env=env)
     subprocess.run(["git", "tag", "-a", tag, "-m", message], cwd=repository_path, env=env)
     if push:
-        subprocess.run(["git", "push", "origin", tag], cwd=repository_path, env=env)
+        url = (
+            "origin"
+            if not github_token or not github_repository
+            else f"https://x-access-token:{github_token}@github.com/{github_repository}"
+        )
+        subprocess.run(["git", "push", url, tag], cwd=repository_path, env=env)
     print(f"Created new tag: {tag}")
 
 
@@ -191,20 +205,24 @@ def patch_with_regex(
 
 
 def bump(
+    *,  # enforce keyword-only arguments
     dry_run: bool = False,
     verbose: bool = False,
     major_verbs: List[str] = ["breaking", "break", "major"],
     minor_verbs: List[str] = ["feature", "minor", "add", "new"],
     patch_verbs: List[str] = ["fix", "patch", "bug", "improve"],
-    path: PathLike = None,  # takes current directory as default
-    changelog_file: PathLike = "CHANGELOG.md",  # relative or absolute path to the changelog file
-    version_file: PathLike = "VERSION",  # relative or absolute path to the version file
-    update_version_in: List[Tuple[PathLike, str]] = None,
-    update_major_version_in: List[Tuple[PathLike, str]] = None,
-    update_minor_version_in: List[Tuple[PathLike, str]] = None,
-    update_patch_version_in: List[Tuple[PathLike, str]] = None,
+    path: Optional[PathLike] = None,  # takes current directory as default
+    changelog_file: Optional[PathLike] = "CHANGELOG.md",  # relative or absolute path to the changelog file
+    version_file: Optional[PathLike] = "VERSION",  # relative or absolute path to the version file
+    update_version_in: Optional[List[Tuple[PathLike, str]]] = None,
+    update_major_version_in: Optional[List[Tuple[PathLike, str]]] = None,
+    update_minor_version_in: Optional[List[Tuple[PathLike, str]]] = None,
+    update_patch_version_in: Optional[List[Tuple[PathLike, str]]] = None,
     git_user_name: str = "TinySemVer",
     git_user_email: str = "tinysemver@ashvardanian.com",
+    push: bool = True,
+    github_token: Optional[str] = None,
+    github_repository: Optional[str] = None,
 ) -> SemVer:
 
     repository_path = os.path.abspath(path) if path else os.getcwd()
@@ -227,6 +245,18 @@ def bump(
         update_minor_version_in = [(normalize_path(file), pattern) for file, pattern in update_minor_version_in]
     if update_patch_version_in:
         update_patch_version_in = [(normalize_path(file), pattern) for file, pattern in update_patch_version_in]
+
+    # Let's pull the environment variables from the GitHub Action context
+    # https://cli.github.com/manual/gh_help_environment
+    if not dry_run:
+        github_token = github_token or os.getenv("GH_TOKEN", None)
+        assert not github_token or len(github_token) > 0, "GitHub token is empty or missing"
+        github_repository = github_repository or os.getenv("GH_REPOSITORY", None)
+        assert not github_repository or len(github_repository) > 0, "GitHub repository is empty or missing"
+        matched_repository = re.match(r"[\w-]*\/[\w-]*", github_repository)
+        assert (
+            matched_repository and matched_repository.string == github_repository
+        ), "GitHub repository must be in the 'owner/repo' format"
 
     assert not version_file or (
         not os.path.exists(version_file) or os.path.isfile(version_file)
@@ -306,7 +336,15 @@ def bump(
             patch_with_regex(file_path, regex_pattern, str(new_version[2]), dry_run=dry_run, verbose=verbose)
 
     if not dry_run:
-        create_tag(repository_path, new_version, git_user_name, git_user_email)
+        create_tag(
+            repository_path=repository_path,
+            version=new_version,
+            user_name=git_user_name,
+            user_email=git_user_email,
+            github_token=github_token,
+            github_repository=github_repository,
+            push=push,
+        )
 
 
 def main():
@@ -322,6 +360,12 @@ def main():
         action="store_true",
         default=False,
         help="Print more information",
+    )
+    parser.add_argument(
+        "--push",
+        action="store_true",
+        default=False,
+        help="Push the new tag to the repository",
     )
     parser.add_argument(
         "--major-verbs",
@@ -388,6 +432,14 @@ def main():
         default="tinysemver@ashvardanian.com",
         help="Git user email for commits",
     )
+    parser.add_argument(
+        "--github-token",
+        help="GitHub access token to push to protected branches, if not set will use GH_TOKEN env var",
+    )
+    parser.add_argument(
+        "--github-repository",
+        help="GitHub repository in the 'owner/repo' format, if not set will use GH_REPOSITORY env var",
+    )
 
     args = parser.parse_args()
 
@@ -407,6 +459,9 @@ def main():
             update_patch_version_in=args.update_patch_version_in,
             git_user_name=args.git_user_name,
             git_user_email=args.git_user_email,
+            github_token=args.github_token,
+            github_repository=args.github_repository,
+            push=args.push,
         )
     except Exception as e:
         print(f"! {e}")
