@@ -41,3 +41,9 @@
 
 - Fix: Extra space in command
 - Make: Drop `setup.py`
+
+## June 13, 2024: v1.2.1
+
+### Patch
+
+- Improve: Log after push
