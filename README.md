@@ -13,10 +13,10 @@ $ tinysemver --dry-run --verbose
 
 The `--dry-run` flag will only print the next version without changing any files.
 Great for pre-release CI pipelines.
-If you need more control over the default specification, here is a list of all available options:
+If you need more control over the default specification, here are more options:
 
 ```sh
-$ tinysemver --dry-run --verbose \
+$ tinysemver --verbose \
     --major-verbs 'breaking,break,major' \
     --minor-verbs 'feature,minor,add,new' \
     --patch-verbs 'fix,patch,bug,improve' \
@@ -26,7 +26,8 @@ $ tinysemver --dry-run --verbose \
     --update-version-in 'CITATION.cff' '^version: (.*)' \
     --update-major-version-in 'include/stringzilla/stringzilla.h' '^#define STRINGZILLA_VERSION_MAJOR (.*)' \
     --update-minor-version-in 'include/stringzilla/stringzilla.h' '^#define STRINGZILLA_VERSION_MINOR (.*)' \
-    --update-patch-version-in 'include/stringzilla/stringzilla.h' '^#define STRINGZILLA_VERSION_PATCH (.*)'
+    --update-patch-version-in 'include/stringzilla/stringzilla.h' '^#define STRINGZILLA_VERSION_PATCH (.*)' \
+    --github-repository 'ashvardanian/stringzilla'
 > Current version: 1.2.2
 > ? Commits since last tag: 3                   # Only in verbose mode
 > # 5579972: Improve: Log file patches          # Only in verbose mode

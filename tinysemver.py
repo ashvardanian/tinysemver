@@ -156,14 +156,15 @@ def create_tag(
     subprocess.run(["git", "add", "-A"], cwd=repository_path)
     subprocess.run(["git", "commit", "-m", message], cwd=repository_path, env=env)
     subprocess.run(["git", "tag", "-a", tag, "-m", message], cwd=repository_path, env=env)
+    print(f"Created new tag: {tag}")
     if push:
         url = (
             "origin"
             if not github_token or not github_repository
             else f"https://x-access-token:{github_token}@github.com/{github_repository}"
         )
-        subprocess.run(["git", "push", url, tag], cwd=repository_path, env=env)
-    print(f"Created new tag: {tag}")
+        subprocess.run(["git", "push", url, "--tags"], cwd=repository_path, env=env)
+        print(f"Pushed to: {url}")
 
 
 def patch_with_regex(
@@ -464,8 +465,10 @@ def main():
             github_repository=args.github_repository,
             push=args.push,
         )
-    except Exception as e:
+    except AssertionError as e:
         print(f"! {e}")
+        exit(1)
+    except Exception as e:
         traceback.print_exc(e)
         exit(1)
 
