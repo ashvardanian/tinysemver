@@ -167,7 +167,9 @@ def create_tag(
             assert github_repository and not github_token, "You can't provide the GitHub token without the repository"
             url = f"https://github.com/{github_repository}"
 
-        subprocess.run(["git", "push", url, "--tags"], cwd=repository_path, env=env)
+        # Push both commits and the tag
+        subprocess.run(["git", "push", url], cwd=repository_path, env=env)
+        subprocess.run(["git", "push", url, tag], cwd=repository_path, env=env)
         print(f"Pushed to: {url}")
 
 
