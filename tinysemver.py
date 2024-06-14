@@ -146,7 +146,7 @@ def create_tag(
     user_email: str,
     github_token: Optional[str] = None,
     github_repository: Optional[str] = None,
-    push: bool = True,
+    push: bool = False,
 ) -> None:
     tag = f"v{version[0]}.{version[1]}.{version[2]}"
     env = os.environ.copy()
