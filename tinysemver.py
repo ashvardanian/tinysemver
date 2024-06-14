@@ -158,11 +158,15 @@ def create_tag(
     subprocess.run(["git", "tag", "-a", tag, "-m", message], cwd=repository_path, env=env)
     print(f"Created new tag: {tag}")
     if push:
-        url = (
-            "origin"
-            if not github_token or not github_repository
-            else f"https://x-access-token:{github_token}@github.com/{github_repository}"
-        )
+        url = None
+        if github_token and github_repository:
+            url = f"https://x-access-token:{github_token}@github.com/{github_repository}"
+        elif not github_token and not github_repository:
+            url = "origin"
+        else:
+            assert github_repository and not github_token, "You can't provide the GitHub token without the repository"
+            url = f"https://github.com/{github_repository}"
+
         subprocess.run(["git", "push", url, "--tags"], cwd=repository_path, env=env)
         print(f"Pushed to: {url}")
 
