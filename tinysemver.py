@@ -49,6 +49,7 @@ import re
 import os
 from typing import List, Tuple, Literal, Union, Optional
 from datetime import datetime
+import traceback
 
 SemVer = Tuple[int, int, int]
 BumpType = Literal["major", "minor", "patch"]
@@ -465,6 +466,7 @@ def main():
         )
     except Exception as e:
         print(f"! {e}")
+        traceback.print_exc(e)
         exit(1)
 
 

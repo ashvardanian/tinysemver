@@ -30,3 +30,14 @@
 ### Patch
 
 - Improve: Push by default
+
+## June 13, 2024: v1.2.0
+
+### Minor
+
+- Add: `--github-repository` for push
+
+### Patch
+
+- Fix: Extra space in command
+- Make: Drop `setup.py`
