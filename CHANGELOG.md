@@ -53,3 +53,9 @@
 ### Patch
 
 - Fix: `push` URL resolution
+
+## June 13, 2024: v1.2.3
+
+### Patch
+
+- Fix: Default `push` argument
