@@ -59,3 +59,9 @@
 ### Patch
 
 - Fix: Default `push` argument
+
+## June 13, 2024: v1.2.4
+
+### Patch
+
+- Fix: Lowercase project name
