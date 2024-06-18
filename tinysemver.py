@@ -169,7 +169,7 @@ def create_tag(
 
         # Push both commits and the tag
         subprocess.run(["git", "push", url], cwd=repository_path, env=env)
-        subprocess.run(["git", "push", url, tag], cwd=repository_path, env=env)
+        subprocess.run(["git", "push", url, "--tag"], cwd=repository_path, env=env)
         print(f"Pushed to: {url}")
 
 

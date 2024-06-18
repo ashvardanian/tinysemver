@@ -197,8 +197,21 @@ $ tinysemver --dry-run --verbose \
     --update-version-in 'example/README.md' '^version = \{(\d+\.\d+\.\d+)\}' \
     --update-version-in 'example/wasmer.toml' '^version = "(\d+\.\d+\.\d+)"' \
     --update-version-in 'example/nuget-package.props' '(\d+\.\d+\.\d+)\<\/Version\>' \
-    --update-major-version-in 'example/index.hpp' '^#define USEARCH_VERSION_MAJOR (\d)' \
-    --update-minor-version-in 'example/index.hpp' '^#define USEARCH_VERSION_MINOR (\d)' \
-    --update-patch-version-in 'example/index.hpp' '^#define USEARCH_VERSION_PATCH (\d)' \
+    --update-major-version-in 'example/index.hpp' '^#define USEARCH_VERSION_MAJOR (\d+)' \
+    --update-minor-version-in 'example/index.hpp' '^#define USEARCH_VERSION_MINOR (\d+)' \
+    --update-patch-version-in 'example/index.hpp' '^#define USEARCH_VERSION_PATCH (\d+)' \
     --path .
+```
+
+## Contributing
+
+Feel free to open an issue or a pull request.
+If you need to bump the version of `tinysemver` itself:
+
+```sh
+tinysemver --verbose \
+    --version-file 'VERSION' \
+    --changelog-file 'CHANGELOG.md' \
+    --update-version-in 'pyproject.toml' 'version = "(.*)"' \
+    --github-repository 'ashvardanian/affine-gaps' --push
 ```
