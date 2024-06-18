@@ -220,8 +220,8 @@ def bump(
     minor_verbs: List[str] = ["feature", "minor", "add", "new"],
     patch_verbs: List[str] = ["fix", "patch", "bug", "improve"],
     path: Optional[PathLike] = None,  # takes current directory as default
-    changelog_file: Optional[PathLike] = "CHANGELOG.md",  # relative or absolute path to the changelog file
-    version_file: Optional[PathLike] = "VERSION",  # relative or absolute path to the version file
+    changelog_file: Optional[PathLike] = None,  # relative or absolute path to the changelog file
+    version_file: Optional[PathLike] = None,  # relative or absolute path to the version file
     update_version_in: Optional[List[Tuple[PathLike, str]]] = None,
     update_major_version_in: Optional[List[Tuple[PathLike, str]]] = None,
     update_minor_version_in: Optional[List[Tuple[PathLike, str]]] = None,
@@ -389,12 +389,10 @@ def main():
     )
     parser.add_argument(
         "--changelog-file",
-        default="CHANGELOG.md",
         help="Path to the changelog file, like 'CHANGELOG.md'",
     )
     parser.add_argument(
         "--version-file",
-        default="VERSION",
         help="Path to the version file, like 'VERSION'",
     )
     parser.add_argument(
