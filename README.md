@@ -22,12 +22,14 @@ $ tinysemver --verbose \
     --patch-verbs 'fix,patch,bug,improve' \
     --changelog-file 'CHANGELOG.md' \
     --version-file 'VERSION' \
-    --update-version-in 'package.json' '"version": "(.*)"' \
+    --update-version-in 'pyproject.toml' 'version = "(\d+\.\d+\.\d+)"' \   # You can match the version with a generic wildcard: .*
+    --update-version-in 'package.json' '"version": "(.*)"' \     # Or stricter format: \d+\.\d+\.\d+
     --update-version-in 'CITATION.cff' '^version: (.*)' \
     --update-major-version-in 'include/stringzilla/stringzilla.h' '^#define STRINGZILLA_VERSION_MAJOR (.*)' \
     --update-minor-version-in 'include/stringzilla/stringzilla.h' '^#define STRINGZILLA_VERSION_MINOR (.*)' \
     --update-patch-version-in 'include/stringzilla/stringzilla.h' '^#define STRINGZILLA_VERSION_PATCH (.*)' \
-    --github-repository 'ashvardanian/stringzilla'
+    --github-repository 'ashvardanian/stringzilla' \
+    --push
 > Current version: 1.2.2
 > ? Commits since last tag: 3                   # Only in verbose mode
 > # 5579972: Improve: Log file patches          # Only in verbose mode
@@ -39,6 +41,9 @@ $ tinysemver --verbose \
 > Will update file: package.json:5
 > - "version": "1.2.2"                          # Only in verbose mode
 > + "version": "1.3.0"                          # Only in verbose mode
+> Will update file: pyproject.toml:7
+> - version = "1.2.2"                           # Only in verbose mode
+> + version = "1.3.0"                           # Only in verbose mode
 > Will update file: CITATION.cff:7
 > - version: 1.2.2                              # Only in verbose mode
 > + version: 1.3.0                              # Only in verbose mode
