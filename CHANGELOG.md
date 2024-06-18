@@ -95,3 +95,9 @@
 ### Patch
 
 - Improve: Push all tags
+
+## June 17, 2024: v1.2.8
+
+### Patch
+
+- Improve: Rebase before push
