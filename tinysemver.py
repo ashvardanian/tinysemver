@@ -217,9 +217,9 @@ def bump(
     *,  # enforce keyword-only arguments
     dry_run: bool = False,
     verbose: bool = False,
-    major_verbs: List[str] = ["breaking", "break", "major"],
-    minor_verbs: List[str] = ["feature", "minor", "add", "new"],
-    patch_verbs: List[str] = ["fix", "patch", "bug", "improve"],
+    major_verbs: List[str] = ["major", "breaking", "break"],
+    minor_verbs: List[str] = ["minor", "feature", "add", "new"],
+    patch_verbs: List[str] = ["patch", "fix", "bug", "improve", "docs"],
     path: Optional[PathLike] = None,  # takes current directory as default
     changelog_file: Optional[PathLike] = None,  # relative or absolute path to the changelog file
     version_file: Optional[PathLike] = None,  # relative or absolute path to the version file
@@ -275,9 +275,9 @@ def bump(
         not os.path.exists(changelog_file) or os.path.isfile(changelog_file)
     ), f"Changelog file is missing or isn't a regular file: {changelog_file}"
 
-    major_verbs = normalize_verbs(major_verbs, ["breaking", "break", "major"])
-    minor_verbs = normalize_verbs(minor_verbs, ["feature", "minor", "add", "new"])
-    patch_verbs = normalize_verbs(patch_verbs, ["fix", "patch", "bug", "improve"])
+    major_verbs = normalize_verbs(major_verbs, ["major", "breaking", "break"])
+    minor_verbs = normalize_verbs(minor_verbs, ["minor", "feature", "add", "new"])
+    patch_verbs = normalize_verbs(patch_verbs, ["patch", "fix", "bug", "improve", "docs"])
 
     last_tag = get_last_tag(repository_path)
     assert last_tag, f"No tags found in the repository: {repository_path}"
@@ -387,7 +387,7 @@ def main():
     )
     parser.add_argument(
         "--patch-verbs",
-        help="Comma-separated list of patch verbs, like 'fix,patch,bug,improve'",
+        help="Comma-separated list of patch verbs, like 'fix,patch,bug,improve,docs'",
     )
     parser.add_argument(
         "--changelog-file",
