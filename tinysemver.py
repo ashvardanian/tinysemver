@@ -168,9 +168,9 @@ def create_tag(
             url = f"https://github.com/{github_repository}"
 
         # Pull the latest changes from the remote repository
-        pull_result = subprocess.run(["git", "pull", "--rebase", url], cwd=repository_path, env=env)
-        if pull_result.returncode != 0:
-            raise RuntimeError("Failed to pull the latest changes from the remote repository")
+        # pull_result = subprocess.run(["git", "pull", "--merge", url], cwd=repository_path, env=env)
+        # if pull_result.returncode != 0:
+        #     raise RuntimeError("Failed to pull the latest changes from the remote repository")
 
         # Push both commits and the tag
         push_result = subprocess.run(["git", "push", url], cwd=repository_path, env=env)
