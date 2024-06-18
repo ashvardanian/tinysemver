@@ -157,24 +157,24 @@ Probably very useful for 2-3 projects, I didn't need to support any of them yet.
 ## Examples
 
 Assembling RegEx queries can be hard.
-Luckily, there aren't too mnay files to update in most projects.
+Luckily, there aren't too many files to update in most projects.
 Below is an example of a pipeline for the USearch project, that has bindings to 10 programming languages.
 Feel free to add other sources and examples.
 
 ```sh
 $ mkdir -p example
 
-$ wget https://github.com/unum-cloud/usearch/raw/main/VERSION -O example/
-$ wget https://github.com/unum-cloud/usearch/raw/main/CHANGELOG.md -O example/ # Missing
-$ wget https://github.com/unum-cloud/usearch/raw/main/CITATION.cff -O example/
-$ wget https://github.com/unum-cloud/usearch/raw/main/CMakeLists.txt -O example/
-$ wget https://github.com/unum-cloud/usearch/raw/main/Cargo.toml -O example/
-$ wget https://github.com/unum-cloud/usearch/raw/main/package.json -O example/
-$ wget https://github.com/unum-cloud/usearch/raw/main/conanfile.py -O example/
-$ wget https://github.com/unum-cloud/usearch/raw/main/README.md -O example/
-$ wget https://github.com/unum-cloud/usearch/raw/main/wasmer.toml -O example/
-$ wget https://github.com/unum-cloud/usearch/raw/main/csharp/nuget/nuget-package.props -O example/
-$ wget https://github.com/unum-cloud/usearch/raw/main/include/usearch/index.hpp -O example/
+$ wget https://github.com/unum-cloud/usearch/raw/main/VERSION -P example/
+$ wget https://github.com/unum-cloud/usearch/raw/main/CHANGELOG.md -P example/ # Missing
+$ wget https://github.com/unum-cloud/usearch/raw/main/CITATION.cff -P example/
+$ wget https://github.com/unum-cloud/usearch/raw/main/CMakeLists.txt -P example/
+$ wget https://github.com/unum-cloud/usearch/raw/main/Cargo.toml -P example/
+$ wget https://github.com/unum-cloud/usearch/raw/main/package.json -P example/
+$ wget https://github.com/unum-cloud/usearch/raw/main/conanfile.py -P example/
+$ wget https://github.com/unum-cloud/usearch/raw/main/README.md -P example/
+$ wget https://github.com/unum-cloud/usearch/raw/main/wasmer.toml -P example/
+$ wget https://github.com/unum-cloud/usearch/raw/main/csharp/nuget/nuget-package.props -P example/
+$ wget https://github.com/unum-cloud/usearch/raw/main/include/usearch/index.hpp -P example/
 
 # You can match the semantic version part with a generic wildcard like: .*
 # But it's recommended to stick to a stricter format: \d+\.\d+\.\d+
