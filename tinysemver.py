@@ -261,10 +261,11 @@ def bump(
         assert not github_token or len(github_token) > 0, "GitHub token is empty or missing"
         github_repository = github_repository or os.getenv("GH_REPOSITORY", None)
         assert not github_repository or len(github_repository) > 0, "GitHub repository is empty or missing"
-        matched_repository = re.match(r"[\w-]*\/[\w-]*", github_repository)
-        assert (
-            matched_repository and matched_repository.string == github_repository
-        ), "GitHub repository must be in the 'owner/repo' format"
+        if github_repository:
+            matched_repository = re.match(r"[\w-]*\/[\w-]*", github_repository)
+            assert (
+                matched_repository and matched_repository.string == github_repository
+            ), "GitHub repository must be in the 'owner/repo' format"
 
     assert not version_file or (
         not os.path.exists(version_file) or os.path.isfile(version_file)
