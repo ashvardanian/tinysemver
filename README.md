@@ -213,5 +213,5 @@ tinysemver --verbose \
     --version-file 'VERSION' \
     --changelog-file 'CHANGELOG.md' \
     --update-version-in 'pyproject.toml' 'version = "(.*)"' \
-    --github-repository 'ashvardanian/affine-gaps' --push
+    --github-repository 'ashvardanian/tinysemver' --push
 ```
