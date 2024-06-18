@@ -89,3 +89,9 @@
 - Improve: List docs updates as patches
 - Improve: Detect lacking capture groups
 - Docs: Recommend `\d+.\d+.\d+.` wildcards
+
+## June 17, 2024: v1.2.7
+
+### Patch
+
+- Improve: Push all tags
