@@ -167,9 +167,19 @@ def create_tag(
             assert github_repository and not github_token, "You can't provide the GitHub token without the repository"
             url = f"https://github.com/{github_repository}"
 
+        # Pull the latest changes from the remote repository
+        pull_result = subprocess.run(["git", "pull", "--rebase", url], cwd=repository_path, env=env)
+        if pull_result.returncode != 0:
+            raise RuntimeError("Failed to pull the latest changes from the remote repository")
+
         # Push both commits and the tag
-        subprocess.run(["git", "push", url], cwd=repository_path, env=env)
-        subprocess.run(["git", "push", url, "--tag"], cwd=repository_path, env=env)
+        push_result = subprocess.run(["git", "push", url], cwd=repository_path, env=env)
+        if push_result.returncode != 0:
+            raise RuntimeError("Failed to push the new commits to the remote repository")
+
+        push_result = subprocess.run(["git", "push", url, "--tag"], cwd=repository_path, env=env)
+        if push_result.returncode != 0:
+            raise RuntimeError("Failed to push the new tag to the remote repository")
         print(f"Pushed to: {url}")
 
 
