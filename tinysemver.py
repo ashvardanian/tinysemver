@@ -185,6 +185,7 @@ def patch_with_regex(
         old_content = file.read()
 
     def replace_first_group(match):
+        assert len(match.groups()) == 1, f"Must contain exactly one capturing group in: {regex_pattern} for {file_path}"
         range_to_replace = match.span(1)
         return match.string[: range_to_replace[0]] + new_version + match.string[range_to_replace[1] :]
 
