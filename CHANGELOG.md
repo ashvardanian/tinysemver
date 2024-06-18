@@ -107,3 +107,9 @@
 ### Patch
 
 - Fix: Avoid rebase
+
+## June 17, 2024: v1.2.10
+
+### Patch
+
+- Docs: Fix project name
