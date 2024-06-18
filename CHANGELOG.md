@@ -101,3 +101,9 @@
 ### Patch
 
 - Improve: Rebase before push
+
+## June 17, 2024: v1.2.9
+
+### Patch
+
+- Fix: Avoid rebase
