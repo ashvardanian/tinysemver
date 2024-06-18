@@ -65,3 +65,27 @@
 ### Patch
 
 - Fix: Lowercase project name
+
+## June 17, 2024: v1.2.6
+
+### Patch
+
+- Improve: List docs updates as patches
+- Improve: Detect lacking capture groups
+- Docs: Recommend `\d+.\d+.\d+.` wildcards
+
+## June 17, 2024: v1.2.6
+
+### Patch
+
+- Improve: List docs updates as patches
+- Improve: Detect lacking capture groups
+- Docs: Recommend `\d+.\d+.\d+.` wildcards
+
+## June 17, 2024: v1.2.6
+
+### Patch
+
+- Improve: List docs updates as patches
+- Improve: Detect lacking capture groups
+- Docs: Recommend `\d+.\d+.\d+.` wildcards

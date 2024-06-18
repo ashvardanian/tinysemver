@@ -22,7 +22,7 @@ $ tinysemver --verbose \
     --patch-verbs 'fix,patch,bug,improve' \
     --changelog-file 'CHANGELOG.md' \
     --version-file 'VERSION' \
-    --update-version-in 'pyproject.toml' 'version = "(\d+\.\d+\.\d+)"' \   # You can match the version with a generic wildcard: .*
+    --update-version-in 'pyproject.toml' '^version = "(\d+\.\d+\.\d+)"' \   # You can match the version with a generic wildcard: .*
     --update-version-in 'package.json' '"version": "(.*)"' \     # Or stricter format: \d+\.\d+\.\d+
     --update-version-in 'CITATION.cff' '^version: (.*)' \
     --update-major-version-in 'include/stringzilla/stringzilla.h' '^#define STRINGZILLA_VERSION_MAJOR (.*)' \
