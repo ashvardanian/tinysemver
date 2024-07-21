@@ -1,0 +1,90 @@
+name: 'TinySemVer'
+description: 'A tiny Python script that helps you manage your project''s versioning'
+inputs:
+  dry-run:
+    description: 'Do not create a new tag'
+    required: false
+    default: 'false'
+  verbose:
+    description: 'Print more information'
+    required: false
+    default: 'false'
+  push:
+    description: 'Push the new tag to the repository'
+    required: false
+    default: 'false'
+  major-verbs:
+    description: 'Comma-separated list of major verbs'
+    required: false
+  minor-verbs:
+    description: 'Comma-separated list of minor verbs'
+    required: false
+  patch-verbs:
+    description: 'Comma-separated list of patch verbs'
+    required: false
+  changelog-file:
+    description: 'Path to the changelog file'
+    required: false
+  version-file:
+    description: 'Path to the version file'
+    required: false
+  update-version-in:
+    description: 'Semicolon-separated list of file paths and regex patterns to update version'
+    required: false
+  update-major-version-in:
+    description: 'Semicolon-separated list of file paths and regex patterns to update major version'
+    required: false
+  update-minor-version-in:
+    description: 'Semicolon-separated list of file paths and regex patterns to update minor version'
+    required: false
+  update-patch-version-in:
+    description: 'Semicolon-separated list of file paths and regex patterns to update patch version'
+    required: false
+  path:
+    description: 'Path to the git repository'
+    required: false
+    default: '.'
+  git-user-name:
+    description: 'Git user name for commits'
+    required: false
+    default: 'TinySemVer'
+  git-user-email:
+    description: 'Git user email for commits'
+    required: false
+    default: 'tinysemver@ashvardanian.com'
+  github-token:
+    description: 'GitHub access token to push to protected branches'
+    required: false
+  github-repository:
+    description: 'GitHub repository in the ''owner/repo'' format'
+    required: false
+
+runs:
+  using: "composite"
+  steps:
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.x'
+    
+    - name: Run TinySemVer
+      shell: bash
+      env:
+        DRY_RUN: ${{ inputs.dry-run }}
+        VERBOSE: ${{ inputs.verbose }}
+        PUSH: ${{ inputs.push }}
+        MAJOR_VERBS: ${{ inputs.major-verbs }}
+        MINOR_VERBS: ${{ inputs.minor-verbs }}
+        PATCH_VERBS: ${{ inputs.patch-verbs }}
+        CHANGELOG_FILE: ${{ inputs.changelog-file }}
+        VERSION_FILE: ${{ inputs.version-file }}
+        UPDATE_VERSION_IN: ${{ inputs.update-version-in }}
+        UPDATE_MAJOR_VERSION_IN: ${{ inputs.update-major-version-in }}
+        UPDATE_MINOR_VERSION_IN: ${{ inputs.update-minor-version-in }}
+        UPDATE_PATCH_VERSION_IN: ${{ inputs.update-patch-version-in }}
+        PATH: ${{ inputs.path }}
+        GIT_USER_NAME: ${{ inputs.git-user-name }}
+        GIT_USER_EMAIL: ${{ inputs.git-user-email }}
+        GITHUB_TOKEN: ${{ inputs.github-token }}
+        GITHUB_REPOSITORY: ${{ inputs.github-repository }}
+      run: python ${{ github.action_path }}/tinysemver.py

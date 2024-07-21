@@ -368,98 +368,116 @@ def bump(
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Tiny Semantic Versioning tool")
-    parser.add_argument(
-        "--dry-run",
-        action="store_true",
-        default=False,
-        help="Do not create a new tag",
-    )
-    parser.add_argument(
-        "--verbose",
-        action="store_true",
-        default=False,
-        help="Print more information",
-    )
-    parser.add_argument(
-        "--push",
-        action="store_true",
-        default=False,
-        help="Push the new tag to the repository",
-    )
-    parser.add_argument(
-        "--major-verbs",
-        help="Comma-separated list of major verbs, like 'breaking,break,major'",
-    )
-    parser.add_argument(
-        "--minor-verbs",
-        help="Comma-separated list of minor verbs, like 'feature,minor,add,new'",
-    )
-    parser.add_argument(
-        "--patch-verbs",
-        help="Comma-separated list of patch verbs, like 'fix,patch,bug,improve,docs'",
-    )
-    parser.add_argument(
-        "--changelog-file",
-        help="Path to the changelog file, like 'CHANGELOG.md'",
-    )
-    parser.add_argument(
-        "--version-file",
-        help="Path to the version file, like 'VERSION'",
-    )
-    parser.add_argument(
-        "--update-version-in",
-        nargs=2,
-        action="append",
-        metavar=("FILE", "REGEX"),
-        help="File path and regex pattern to update version",
-    )
-    parser.add_argument(
-        "--update-major-version-in",
-        nargs=2,
-        action="append",
-        metavar=("FILE", "REGEX"),
-        help="File path and regex pattern to update major version",
-    )
-    parser.add_argument(
-        "--update-minor-version-in",
-        nargs=2,
-        action="append",
-        metavar=("FILE", "REGEX"),
-        help="File path and regex pattern to update minor version",
-    )
-    parser.add_argument(
-        "--update-patch-version-in",
-        nargs=2,
-        action="append",
-        metavar=("FILE", "REGEX"),
-        help="File path and regex pattern to update patch version",
-    )
-    parser.add_argument(
-        "--path",
-        default=".",
-        help="Path to the git repository",
-    )
-    parser.add_argument(
-        "--git-user-name",
-        default="TinySemVer",
-        help="Git user name for commits",
-    )
-    parser.add_argument(
-        "--git-user-email",
-        default="tinysemver@ashvardanian.com",
-        help="Git user email for commits",
-    )
-    parser.add_argument(
-        "--github-token",
-        help="GitHub access token to push to protected branches, if not set will use GH_TOKEN env var",
-    )
-    parser.add_argument(
-        "--github-repository",
-        help="GitHub repository in the 'owner/repo' format, if not set will use GH_REPOSITORY env var",
-    )
-
-    args = parser.parse_args()
+    if 'GITHUB_ACTIONS' not in os.environ:
+        parser = argparse.ArgumentParser(description="Tiny Semantic Versioning tool")
+        parser.add_argument(
+            "--dry-run",
+            action="store_true",
+            default=False,
+            help="Do not create a new tag",
+        )
+        parser.add_argument(
+            "--verbose",
+            action="store_true",
+            default=False,
+            help="Print more informations",
+        )
+        parser.add_argument(
+            "--push",
+            action="store_true",
+            default=False,
+            help="Push the new tag to the repository",
+        )
+        parser.add_argument(
+            "--major-verbs",
+            help="Comma-separated list of major verbs, like 'breaking,break,major'",
+        )
+        parser.add_argument(
+            "--minor-verbs",
+            help="Comma-separated list of minor verbs, like 'feature,minor,add,new'",
+        )
+        parser.add_argument(
+            "--patch-verbs",
+            help="Comma-separated list of patch verbs, like 'fix,patch,bug,improve,docs'",
+        )
+        parser.add_argument(
+            "--changelog-file",
+            help="Path to the changelog file, like 'CHANGELOG.md'",
+        )
+        parser.add_argument(
+            "--version-file",
+            help="Path to the version file, like 'VERSION'",
+        )
+        parser.add_argument(
+            "--update-version-in",
+            nargs=2,
+            action="append",
+            metavar=("FILE", "REGEX"),
+            help="File path and regex pattern to update version",
+        )
+        parser.add_argument(
+            "--update-major-version-in",
+            nargs=2,
+            action="append",
+            metavar=("FILE", "REGEX"),
+            help="File path and regex pattern to update major version",
+        )
+        parser.add_argument(
+            "--update-minor-version-in",
+            nargs=2,
+            action="append",
+            metavar=("FILE", "REGEX"),
+            help="File path and regex pattern to update minor version",
+        )
+        parser.add_argument(
+            "--update-patch-version-in",
+            nargs=2,
+            action="append",
+            metavar=("FILE", "REGEX"),
+            help="File path and regex pattern to update patch version",
+        )
+        parser.add_argument(
+            "--path",
+            default=".",
+            help="Path to the git repository",
+        )
+        parser.add_argument(
+            "--git-user-name",
+            default="TinySemVer",
+            help="Git user name for commits",
+        )
+        parser.add_argument(
+            "--git-user-email",
+            default="tinysemver@ashvardanian.com",
+            help="Git user email for commits",
+        )
+        parser.add_argument(
+            "--github-token",
+            help="GitHub access token to push to protected branches, if not set will use GH_TOKEN env var",
+        )
+        parser.add_argument(
+            "--github-repository",
+            help="GitHub repository in the 'owner/repo' format, if not set will use GH_REPOSITORY env var",
+        )
+        args = parser.parse_args()
+    else:
+        args.dry_run = os.environ.get('DRY_RUN', '').lower() == 'true'
+        args.verbose = os.environ.get('VERBOSE', '').lower() == 'true'
+        args.push = os.environ.get('PUSH', '').lower() == 'true'
+        args.major_verbs = os.environ.get('MAJOR_VERBS')
+        args.minor_verbs = os.environ.get('MINOR_VERBS')
+        args.patch_verbs = os.environ.get('PATCH_VERBS')
+        args.changelog_file = os.environ.get('CHANGELOG_FILE')
+        args.version_file = os.environ.get('VERSION_FILE')
+        args.update_version_in = [tuple(item.split(',')) for item in os.environ.get('UPDATE_VERSION_IN', '').split(';') if item]
+        args.update_major_version_in = [tuple(item.split(',')) for item in os.environ.get('UPDATE_MAJOR_VERSION_IN', '').split(';') if item]
+        args.update_minor_version_in = [tuple(item.split(',')) for item in os.environ.get('UPDATE_MINOR_VERSION_IN', '').split(';') if item]
+        args.update_patch_version_in = [tuple(item.split(',')) for item in os.environ.get('UPDATE_PATCH_VERSION_IN', '').split(';') if item]
+        args.path = os.environ.get('PATH', '.')
+        args.git_user_name = os.environ.get('GIT_USER_NAME', 'TinySemVer')
+        args.git_user_email = os.environ.get('GIT_USER_EMAIL', 'tinysemver@ashvardanian.com')
+        args.github_token = os.environ.get('GITHUB_TOKEN')
+        args.github_repository = os.environ.get('GITHUB_REPOSITORY')
 
     try:
         bump(
