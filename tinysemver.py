@@ -368,8 +368,8 @@ def bump(
 
 
 def main():
+    parser = argparse.ArgumentParser(description="Tiny Semantic Versioning tool")
     if 'GITHUB_ACTIONS' not in os.environ:
-        parser = argparse.ArgumentParser(description="Tiny Semantic Versioning tool")
         parser.add_argument(
             "--dry-run",
             action="store_true",
