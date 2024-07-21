@@ -1,0 +1,29 @@
+name: Version
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  semver:
+    # Add this condition to skip recursive releases
+    if: "!contains(github.event.head_commit.message, 'Release:')"
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    name: Update Version
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+    - name: Print Environment Variables
+      run: |
+        env
+    - name: Run TinySemVer
+      uses: ./  # This uses the action defined in the current repository
+      with:
+        verbose: 'true'
+        push: 'true'
+        changelog-file: 'CHANGELOG.md'
+        version-file: 'VERSION'
+        update-version-in: 'pyproject.toml,version = "(.*)"'
