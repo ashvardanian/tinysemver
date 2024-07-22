@@ -501,8 +501,8 @@ def main():
         args.path = os.environ.get('TINYSEMVER_REPO_PATH')
         args.git_user_name = os.environ.get('TINYSEMVER_GIT_USER_NAME', 'TinySemVer')
         args.git_user_email = os.environ.get('TINYSEMVER_GIT_USER_EMAIL', 'tinysemver@ashvardanian.com')
-        args.github_token = os.environ.get('TINYSEMVER_GITHUB_TOKEN')
-        args.github_repository = os.environ.get('TINYSEMVER_GITHUB_REPOSITORY')
+        args.github_token = os.environ.get('GITHUB_TOKEN')
+        args.github_repository = os.environ.get('GITHUB_REPOSITORY')
 
     try:
         bump(

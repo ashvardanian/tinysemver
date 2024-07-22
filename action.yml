@@ -81,7 +81,8 @@ runs:
         TINYSEMVER_REPO_PATH: ${{ github.workspace }}
         TINYSEMVER_GIT_USER_NAME: ${{ inputs.git-user-name }}
         TINYSEMVER_GIT_USER_EMAIL: ${{ inputs.git-user-email }}
-        TINYSEMVER_GITHUB_TOKEN: ${{ inputs.github-token || github.token }}
+        GITHUB_TOKEN: ${{ inputs.github-token || github.token }}
+        GITHUB_REPOSITORY: ${{ github.repository }}
         TINYSEMVER_DEFAULT_BRANCH: ${{ inputs.default-branch }}
       run: |
         cd $GITHUB_WORKSPACE
