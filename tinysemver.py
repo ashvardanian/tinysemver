@@ -118,9 +118,6 @@ def group_commits(
     patch_commits = []
 
     for commit in commits:
-        # Skip merge commits
-        if commit_starts_with_verb(commit, "merge"):
-            continue
         if any(commit_starts_with_verb(commit, verb) for verb in major_verbs):
             major_commits.append(commit)
         if any(commit_starts_with_verb(commit, verb) for verb in minor_verbs):
