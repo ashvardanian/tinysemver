@@ -485,24 +485,24 @@ def main():
         class Args:
             pass
         args = Args()
-        args.dry_run = os.environ.get('DRY_RUN', '').lower() == 'true'
-        args.verbose = os.environ.get('VERBOSE', '').lower() == 'true'
-        args.push = os.environ.get('PUSH', '').lower() == 'true'
-        args.major_verbs = os.environ.get('MAJOR_VERBS') or 'breaking,break,major'
-        args.minor_verbs = os.environ.get('MINOR_VERBS') or 'feature,minor,add,new'
-        args.patch_verbs = os.environ.get('PATCH_VERBS') or 'fix,patch,bug,improve,docs'
-        args.default_branch = os.environ.get('DEFAULT_BRANCH') or 'main'
-        args.changelog_file = os.environ.get('CHANGELOG_FILE')
-        args.version_file = os.environ.get('VERSION_FILE')
-        args.update_version_in = [tuple(item.split(',')) for item in os.environ.get('UPDATE_VERSION_IN', '').split(';') if item]
-        args.update_major_version_in = [tuple(item.split(',')) for item in os.environ.get('UPDATE_MAJOR_VERSION_IN', '').split(';') if item]
-        args.update_minor_version_in = [tuple(item.split(',')) for item in os.environ.get('UPDATE_MINOR_VERSION_IN', '').split(';') if item]
-        args.update_patch_version_in = [tuple(item.split(',')) for item in os.environ.get('UPDATE_PATCH_VERSION_IN', '').split(';') if item]
-        args.path = os.environ.get('REPO_PATH')
-        args.git_user_name = os.environ.get('GIT_USER_NAME', 'TinySemVer')
-        args.git_user_email = os.environ.get('GIT_USER_EMAIL', 'tinysemver@ashvardanian.com')
-        args.github_token = os.environ.get('GITHUB_TOKEN')
-        args.github_repository = os.environ.get('GITHUB_REPOSITORY')
+        args.dry_run = os.environ.get('TINYSEMVER_DRY_RUN', '').lower() == 'true'
+        args.verbose = os.environ.get('TINYSEMVER_VERBOSE', '').lower() == 'true'
+        args.push = os.environ.get('TINYSEMVER_PUSH', '').lower() == 'true'
+        args.major_verbs = os.environ.get('TINYSEMVER_MAJOR_VERBS') or 'breaking,break,major'
+        args.minor_verbs = os.environ.get('TINYSEMVER_MINOR_VERBS') or 'feature,minor,add,new'
+        args.patch_verbs = os.environ.get('TINYSEMVER_PATCH_VERBS') or 'fix,patch,bug,improve,docs'
+        args.default_branch = os.environ.get('TINYSEMVER_DEFAULT_BRANCH') or 'main'
+        args.changelog_file = os.environ.get('TINYSEMVER_CHANGELOG_FILE')
+        args.version_file = os.environ.get('TINYSEMVER_VERSION_FILE')
+        args.update_version_in = [tuple(item.split(',')) for item in os.environ.get('TINYSEMVER_UPDATE_VERSION_IN', '').split(';') if item]
+        args.update_major_version_in = [tuple(item.split(',')) for item in os.environ.get('TINYSEMVER_UPDATE_MAJOR_VERSION_IN', '').split(';') if item]
+        args.update_minor_version_in = [tuple(item.split(',')) for item in os.environ.get('TINYSEMVER_UPDATE_MINOR_VERSION_IN', '').split(';') if item]
+        args.update_patch_version_in = [tuple(item.split(',')) for item in os.environ.get('TINYSEMVER_UPDATE_PATCH_VERSION_IN', '').split(';') if item]
+        args.path = os.environ.get('TINYSEMVER_REPO_PATH')
+        args.git_user_name = os.environ.get('TINYSEMVER_GIT_USER_NAME', 'TinySemVer')
+        args.git_user_email = os.environ.get('TINYSEMVER_GIT_USER_EMAIL', 'tinysemver@ashvardanian.com')
+        args.github_token = os.environ.get('TINYSEMVER_GITHUB_TOKEN')
+        args.github_repository = os.environ.get('TINYSEMVER_GITHUB_REPOSITORY')
 
     try:
         bump(
