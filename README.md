@@ -79,18 +79,18 @@ jobs:
     - name: Run TinySemVer
       uses: your-username/tinysemver@v1
       with:
-         dry-run: 'true'
-         verbose: 'true'
-         push: 'true'
-         major-verbs: 'breaking,break,major'
-         minor-verbs: 'feature,minor,add,new'
-         patch-verbs: 'fix,patch,bug,improve,docs'
-         changelog-file: 'CHANGELOG.md'
-         version-file: 'VERSION'
-         update-version-in: 'pyproject.toml,version = "(.*)"'
-         git-user-name: 'GitHub Actions'
-         git-user-email: 'actions@github.com'
-         github-token: ${{ secrets.GITHUB_TOKEN }}
+        dry-run: 'true'
+        verbose: 'true'
+        push: 'true'
+        major-verbs: 'breaking,break,major'
+        minor-verbs: 'feature,minor,add,new'
+        patch-verbs: 'fix,patch,bug,improve,docs'
+        changelog-file: 'CHANGELOG.md'
+        version-file: 'VERSION'
+        update-version-in: 'pyproject.toml,version = "(.*)"'
+        git-user-name: 'GitHub Actions'
+        git-user-email: 'actions@github.com'
+        github-token: ${{ secrets.GITHUB_TOKEN }}
 ```
 
 ## Why?

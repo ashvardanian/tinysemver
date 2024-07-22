@@ -2,7 +2,7 @@ name: Version
 
 on:
   push:
-    branches: [ main ]
+    branches: [main]
 
 jobs:
   semver:
@@ -13,17 +13,17 @@ jobs:
       contents: write
     name: Update Version
     steps:
-    - uses: actions/checkout@v4
-      with:
-        fetch-depth: 0
-    - name: Print Environment Variables
-      run: |
-        env
-    - name: Run TinySemVer
-      uses: ./  # This uses the action defined in the current repository
-      with:
-        verbose: 'true'
-        push: 'true'
-        changelog-file: 'CHANGELOG.md'
-        version-file: 'VERSION'
-        update-version-in: 'pyproject.toml,version = "(.*)"'
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Print Environment Variables
+        run: |
+          env
+      - name: Run TinySemVer
+        uses: ./ # This uses the action defined in the current repository
+        with:
+          verbose: "true"
+          push: "true"
+          changelog-file: "CHANGELOG.md"
+          version-file: "VERSION"
+          update-version-in: 'pyproject.toml,version = "(.*)"'
