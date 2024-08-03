@@ -28,6 +28,13 @@ classifiers = [
 [project.scripts]
 tinysemver = "tinysemver:main"
 
+[project.urls]
+Homepage = "https://pypi.org/project/tinysemver/"
+Documentation = "https://github.com/ashvardanian/tinysemver/blob/main/README.md"
+Repository = "https://github.com/ashvardanian/tinysemver.git"
+Issues = "https://github.com/ashvardanian/tinysemver/issues"
+Changelog = "https://github.com/ashvardanian/tinysemver/blob/main/CHANGELOG.md"
+
 [tool.setuptools]
 package-dir = { "" = "." }
 

@@ -13,7 +13,7 @@ $ tinysemver --dry-run --verbose
 
 The `--dry-run` flag will only print the next version without changing any files.
 Great for pre-release CI pipelines.
-If you need more control over the default specification, here are more options:
+If you need more control over the default specification, here are more options you can run against the files in this repository:
 
 ```sh
 $ tinysemver --verbose \
@@ -22,8 +22,23 @@ $ tinysemver --verbose \
     --patch-verbs 'fix,patch,bug,improve' \
     --changelog-file 'CHANGELOG.md' \
     --version-file 'VERSION' \
-    --update-version-in 'pyproject.toml' '^version = "(\d+\.\d+\.\d+)"' \   # You can match the version with a generic wildcard: .*
-    --update-version-in 'package.json' '"version": "(.*)"' \     # Or stricter format: \d+\.\d+\.\d+
+    --update-version-in 'pyproject.toml' '^version = "(\d+\.\d+\.\d+)"' \ 
+    --github-repository 'ashvardanian/tinysemver' \
+    --dry-run
+```
+
+It's recommended to use strict version matching with `\d+\.\d+\.\d+` instead of a generic wildcard like `.*`, but both would work.
+Here is an example of passing even more parameters for a project like `stringzilla`:
+
+```sh
+$ tinysemver --verbose \
+    --major-verbs 'breaking,break,major' \
+    --minor-verbs 'feature,minor,add,new' \
+    --patch-verbs 'fix,patch,bug,improve' \
+    --changelog-file 'CHANGELOG.md' \
+    --version-file 'VERSION' \
+    --update-version-in 'pyproject.toml' '^version = "(\d+\.\d+\.\d+)"' \
+    --update-version-in 'package.json' '"version": "(.*)"' \
     --update-version-in 'CITATION.cff' '^version: (.*)' \
     --update-major-version-in 'include/stringzilla/stringzilla.h' '^#define STRINGZILLA_VERSION_MAJOR (.*)' \
     --update-minor-version-in 'include/stringzilla/stringzilla.h' '^#define STRINGZILLA_VERSION_MINOR (.*)' \
