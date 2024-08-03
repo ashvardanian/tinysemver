@@ -22,7 +22,7 @@ $ tinysemver --verbose \
     --patch-verbs 'fix,patch,bug,improve' \
     --changelog-file 'CHANGELOG.md' \
     --version-file 'VERSION' \
-    --update-version-in 'pyproject.toml' '^version = "(\d+\.\d+\.\d+)"' \ 
+    --update-version-in 'pyproject.toml' '^version = "(\d+\.\d+\.\d+)"' \
     --github-repository 'ashvardanian/tinysemver' \
     --dry-run
 ```
