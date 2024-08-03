@@ -70,7 +70,7 @@ def get_last_tag(repository_path: PathLike) -> str:
 
 def get_commits_since_tag(repository_path: PathLike, tag: str) -> Tuple[List[str], List[str]]:
     result = subprocess.run(
-        ["git", "log", f"{tag}..HEAD", "--pretty=format:%h:%s"],
+        ["git", "log", f"{tag}..HEAD", "--no-merges", "--pretty=format:%h:%s"],
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
         cwd=repository_path,
@@ -137,13 +137,13 @@ def bump_version(version: SemVer, bump_type: BumpType) -> SemVer:
     elif bump_type == "patch":
         return major, minor, patch + 1
 
-
 def create_tag(
     *,  # enforce keyword-only arguments
     repository_path: PathLike,
     version: SemVer,
     user_name: str,
     user_email: str,
+    default_branch: str = "main",
     github_token: Optional[str] = None,
     github_repository: Optional[str] = None,
     push: bool = False,
@@ -152,10 +152,22 @@ def create_tag(
     env = os.environ.copy()
     env["GIT_COMMITTER_NAME"] = user_name
     env["GIT_COMMITTER_EMAIL"] = user_email
+    env["GIT_AUTHOR_NAME"] = user_name
+    env["GIT_AUTHOR_EMAIL"] = user_email
     message = f"Release: {tag}"
     subprocess.run(["git", "add", "-A"], cwd=repository_path)
     subprocess.run(["git", "commit", "-m", message], cwd=repository_path, env=env)
-    subprocess.run(["git", "tag", "-a", tag, "-m", message], cwd=repository_path, env=env)
+    
+     # Get the SHA of the new commit
+    new_commit_sha = subprocess.run(
+        ["git", "rev-parse", "HEAD"],
+        cwd=repository_path,
+        capture_output=True,
+        text=True,
+        check=True
+    ).stdout.strip()
+    
+    subprocess.run(["git", "tag", "-a", tag, "-m", message, new_commit_sha], cwd=repository_path, env=env)
     print(f"Created new tag: {tag}")
     if push:
         url = None
@@ -173,13 +185,13 @@ def create_tag(
         #     raise RuntimeError("Failed to pull the latest changes from the remote repository")
 
         # Push both commits and the tag
-        push_result = subprocess.run(["git", "push", url], cwd=repository_path, env=env)
+        push_result = subprocess.run(["git", "push", url, f"{new_commit_sha}:{default_branch}"], cwd=repository_path, env=env)
         if push_result.returncode != 0:
-            raise RuntimeError("Failed to push the new commits to the remote repository")
+            raise RuntimeError(f"Failed to push the new commits to the remote repository: '{url}'")
 
         push_result = subprocess.run(["git", "push", url, "--tag"], cwd=repository_path, env=env)
         if push_result.returncode != 0:
-            raise RuntimeError("Failed to push the new tag to the remote repository")
+            raise RuntimeError(f"Failed to push the new tag to the remote repository: '{url}'")
         print(f"Pushed to: {url}")
 
 
@@ -242,6 +254,7 @@ def bump(
     push: bool = True,
     github_token: Optional[str] = None,
     github_repository: Optional[str] = None,
+    default_branch: str = "main",
 ) -> SemVer:
 
     repository_path = os.path.abspath(path) if path else os.getcwd()
@@ -361,6 +374,7 @@ def bump(
             version=new_version,
             user_name=git_user_name,
             user_email=git_user_email,
+            default_branch=default_branch,
             github_token=github_token,
             github_repository=github_repository,
             push=push,
@@ -368,98 +382,124 @@ def bump(
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Tiny Semantic Versioning tool")
-    parser.add_argument(
-        "--dry-run",
-        action="store_true",
-        default=False,
-        help="Do not create a new tag",
-    )
-    parser.add_argument(
-        "--verbose",
-        action="store_true",
-        default=False,
-        help="Print more information",
-    )
-    parser.add_argument(
-        "--push",
-        action="store_true",
-        default=False,
-        help="Push the new tag to the repository",
-    )
-    parser.add_argument(
-        "--major-verbs",
-        help="Comma-separated list of major verbs, like 'breaking,break,major'",
-    )
-    parser.add_argument(
-        "--minor-verbs",
-        help="Comma-separated list of minor verbs, like 'feature,minor,add,new'",
-    )
-    parser.add_argument(
-        "--patch-verbs",
-        help="Comma-separated list of patch verbs, like 'fix,patch,bug,improve,docs'",
-    )
-    parser.add_argument(
-        "--changelog-file",
-        help="Path to the changelog file, like 'CHANGELOG.md'",
-    )
-    parser.add_argument(
-        "--version-file",
-        help="Path to the version file, like 'VERSION'",
-    )
-    parser.add_argument(
-        "--update-version-in",
-        nargs=2,
-        action="append",
-        metavar=("FILE", "REGEX"),
-        help="File path and regex pattern to update version",
-    )
-    parser.add_argument(
-        "--update-major-version-in",
-        nargs=2,
-        action="append",
-        metavar=("FILE", "REGEX"),
-        help="File path and regex pattern to update major version",
-    )
-    parser.add_argument(
-        "--update-minor-version-in",
-        nargs=2,
-        action="append",
-        metavar=("FILE", "REGEX"),
-        help="File path and regex pattern to update minor version",
-    )
-    parser.add_argument(
-        "--update-patch-version-in",
-        nargs=2,
-        action="append",
-        metavar=("FILE", "REGEX"),
-        help="File path and regex pattern to update patch version",
-    )
-    parser.add_argument(
-        "--path",
-        default=".",
-        help="Path to the git repository",
-    )
-    parser.add_argument(
-        "--git-user-name",
-        default="TinySemVer",
-        help="Git user name for commits",
-    )
-    parser.add_argument(
-        "--git-user-email",
-        default="tinysemver@ashvardanian.com",
-        help="Git user email for commits",
-    )
-    parser.add_argument(
-        "--github-token",
-        help="GitHub access token to push to protected branches, if not set will use GH_TOKEN env var",
-    )
-    parser.add_argument(
-        "--github-repository",
-        help="GitHub repository in the 'owner/repo' format, if not set will use GH_REPOSITORY env var",
-    )
-
-    args = parser.parse_args()
+    if 'GITHUB_ACTIONS' not in os.environ:
+        parser = argparse.ArgumentParser(description="Tiny Semantic Versioning tool")
+        parser.add_argument(
+            "--dry-run",
+            action="store_true",
+            default=False,
+            help="Do not create a new tag",
+        )
+        parser.add_argument(
+            "--verbose",
+            action="store_true",
+            default=False,
+            help="Print more informations",
+        )
+        parser.add_argument(
+            "--push",
+            action="store_true",
+            default=False,
+            help="Push the new tag to the repository",
+        )
+        parser.add_argument(
+            "--major-verbs",
+            help="Comma-separated list of major verbs, like 'breaking,break,major'",
+        )
+        parser.add_argument(
+            "--minor-verbs",
+            help="Comma-separated list of minor verbs, like 'feature,minor,add,new'",
+        )
+        parser.add_argument(
+            "--patch-verbs",
+            help="Comma-separated list of patch verbs, like 'fix,patch,bug,improve,docs'",
+        )
+        parser.add_argument(
+            "--changelog-file",
+            help="Path to the changelog file, like 'CHANGELOG.md'",
+        )
+        parser.add_argument(
+            "--version-file",
+            help="Path to the version file, like 'VERSION'",
+        )
+        parser.add_argument(
+            "--update-version-in",
+            nargs=2,
+            action="append",
+            metavar=("FILE", "REGEX"),
+            help="File path and regex pattern to update version",
+        )
+        parser.add_argument(
+            "--update-major-version-in",
+            nargs=2,
+            action="append",
+            metavar=("FILE", "REGEX"),
+            help="File path and regex pattern to update major version",
+        )
+        parser.add_argument(
+            "--update-minor-version-in",
+            nargs=2,
+            action="append",
+            metavar=("FILE", "REGEX"),
+            help="File path and regex pattern to update minor version",
+        )
+        parser.add_argument(
+            "--update-patch-version-in",
+            nargs=2,
+            action="append",
+            metavar=("FILE", "REGEX"),
+            help="File path and regex pattern to update patch version",
+        )
+        parser.add_argument(
+            "--path",
+            default=".",
+            help="Path to the git repository",
+        )
+        parser.add_argument(
+            "--git-user-name",
+            default="TinySemVer",
+            help="Git user name for commits",
+        )
+        parser.add_argument(
+            "--git-user-email",
+            default="tinysemver@ashvardanian.com",
+            help="Git user email for commits",
+        )
+        parser.add_argument(
+            "--github-token",
+            help="GitHub access token to push to protected branches, if not set will use GH_TOKEN env var",
+        )
+        parser.add_argument(
+            "--default-branch",
+            help="Default branch name of the repo, if not set will default to 'main'",
+        )
+        parser.add_argument(
+            "--github-repository",
+            help="GitHub repository in the 'owner/repo' format, if not set will use GH_REPOSITORY env var",
+        )
+        args = parser.parse_args()
+    else:
+        class Args:
+            pass
+        args = Args()
+        args.dry_run = os.environ.get('TINYSEMVER_DRY_RUN', '').lower() == 'true'
+        args.verbose = os.environ.get('TINYSEMVER_VERBOSE', '').lower() == 'true'
+        args.push = os.environ.get('TINYSEMVER_PUSH', '').lower() == 'true'
+        args.major_verbs = os.environ.get('TINYSEMVER_MAJOR_VERBS') or 'breaking,break,major'
+        args.minor_verbs = os.environ.get('TINYSEMVER_MINOR_VERBS') or 'feature,minor,add,new'
+        args.patch_verbs = os.environ.get('TINYSEMVER_PATCH_VERBS') or 'fix,patch,bug,improve,docs'
+        args.default_branch = os.environ.get('TINYSEMVER_DEFAULT_BRANCH') or 'main'
+        args.changelog_file = os.environ.get('TINYSEMVER_CHANGELOG_FILE')
+        args.version_file = os.environ.get('TINYSEMVER_VERSION_FILE')
+        args.update_version_in = [tuple(item.split(',')) for item in os.environ.get('TINYSEMVER_UPDATE_VERSION_IN', '').split(';') if item]
+        args.update_major_version_in = [tuple(item.split(',')) for item in os.environ.get('TINYSEMVER_UPDATE_MAJOR_VERSION_IN', '').split(';') if item]
+        args.update_minor_version_in = [tuple(item.split(',')) for item in os.environ.get('TINYSEMVER_UPDATE_MINOR_VERSION_IN', '').split(';') if item]
+        args.update_patch_version_in = [tuple(item.split(',')) for item in os.environ.get('TINYSEMVER_UPDATE_PATCH_VERSION_IN', '').split(';') if item]
+        args.path = os.environ.get('TINYSEMVER_REPO_PATH')
+        args.git_user_name = os.environ.get('TINYSEMVER_GIT_USER_NAME', 'TinySemVer')
+        args.git_user_email = os.environ.get('TINYSEMVER_GIT_USER_EMAIL', 'tinysemver@ashvardanian.com')
+        args.github_token = os.environ.get('GITHUB_TOKEN')
+        args.github_repository = os.environ.get('GITHUB_REPOSITORY')
 
     try:
         bump(
