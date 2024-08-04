@@ -147,6 +147,7 @@ def create_tag(
     github_token: Optional[str] = None,
     github_repository: Optional[str] = None,
     push: bool = False,
+    create_release: bool = False,
 ) -> None:
     tag = f"v{version[0]}.{version[1]}.{version[2]}"
     env = os.environ.copy()
@@ -154,6 +155,7 @@ def create_tag(
     env["GIT_COMMITTER_EMAIL"] = user_email
     env["GIT_AUTHOR_NAME"] = user_name
     env["GIT_AUTHOR_EMAIL"] = user_email
+    env["GITHUB_TOKEN"] = github_token
     message = f"Release: {tag}"
     subprocess.run(["git", "add", "-A"], cwd=repository_path)
     subprocess.run(["git", "commit", "-m", message], cwd=repository_path, env=env)
@@ -193,6 +195,34 @@ def create_tag(
         if push_result.returncode != 0:
             raise RuntimeError(f"Failed to push the new tag to the remote repository: '{url}' with error: {push_result.stderr}")
         print(f"Pushed to: {url}")
+
+         # Create a release using GitHub CLI if available
+        if create_release and github_repository:
+            try:
+                # Check if GitHub CLI is available
+                subprocess.run(["gh", "--version"], check=True, capture_output=True)
+                
+                # Create the release
+                release_command = [
+                    "gh", "release", "create", tag,
+                    "--title", f"Release {tag}",
+                    "--notes", message,
+                    "--repo", github_repository
+                ]
+                
+                if github_token:
+                    env["GITHUB_TOKEN"] = github_token
+                
+                release_result = subprocess.run(release_command, cwd=repository_path, capture_output=True, text=True, env=env)
+                
+                if release_result.returncode == 0:
+                    print(f"Created GitHub release for tag: {tag}")
+                else:
+                    print(f"Failed to create GitHub release: {release_result.stderr}")
+            except subprocess.CalledProcessError:
+                print("GitHub CLI not available. Skipping release creation.")
+            except Exception as e:
+                print(f"An error occurred while creating the release: {str(e)}")
 
 
 def patch_with_regex(
@@ -258,6 +288,7 @@ def bump(
     github_token: Optional[str] = None,
     github_repository: Optional[str] = None,
     default_branch: str = "main",
+    create_release: bool = False,
 ) -> SemVer:
 
     repository_path = os.path.abspath(path) if path else os.getcwd()
@@ -381,6 +412,7 @@ def bump(
             github_token=github_token,
             github_repository=github_repository,
             push=push,
+            create_release=create_release,
         )
 
 
@@ -480,6 +512,12 @@ def main():
             "--github-repository",
             help="GitHub repository in the 'owner/repo' format, if not set will use GH_REPOSITORY env var",
         )
+        parser.add_argument(
+            "--create-release",
+            action="store_true",
+            default=False,
+            help="Create a GitHub release using the GitHub CLI",
+        )
         args = parser.parse_args()
     else:
         class Args:
@@ -503,6 +541,7 @@ def main():
         args.git_user_email = os.environ.get('TINYSEMVER_GIT_USER_EMAIL', 'tinysemver@ashvardanian.com')
         args.github_token = os.environ.get('GITHUB_TOKEN')
         args.github_repository = os.environ.get('GITHUB_REPOSITORY')
+        args.create_release = os.environ.get('TINYSEMVER_CREATE_RELEASE', '').lower() == 'true'
 
     try:
         bump(
@@ -523,6 +562,7 @@ def main():
             github_token=args.github_token,
             github_repository=args.github_repository,
             push=args.push,
+            create_release=args.create_release,
         )
     except AssertionError as e:
         print(f"! {e}")

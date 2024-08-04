@@ -111,6 +111,7 @@ jobs:
         git-user-name: 'GitHub Actions'
         git-user-email: 'actions@github.com'
         github-token: ${{ secrets.GITHUB_TOKEN }}
+        create-release: 'true'
 ```
 
 ### Security Considerations for Protected Branches
