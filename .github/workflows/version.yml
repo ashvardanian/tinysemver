@@ -19,11 +19,14 @@ jobs:
       - name: Print Environment Variables
         run: |
           env
-      - name: Run TinySemVer
-        uses: ./ # This uses the action defined in the current repository
-        with:
-          verbose: "true"
-          push: "true"
-          changelog-file: "CHANGELOG.md"
-          version-file: "VERSION"
-          update-version-in: 'pyproject.toml,version = "(.*)"'
+      # - name: Run TinySemVer
+      #   uses: ./ # This uses the action defined in the current repository
+      #   with:
+      #     verbose: "true"
+      #     push: "true"
+      #     changelog-file: "CHANGELOG.md"
+      #     version-file: "VERSION"
+      #     update-version-in: 'pyproject.toml,version = "(.*)"'
+      - uses: actions/checkout@v4
+      - name: Setup tmate session
+        uses: mxschmitt/action-tmate@v3
