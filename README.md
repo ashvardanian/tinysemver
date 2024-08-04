@@ -16,6 +16,7 @@ Great for pre-release CI pipelines.
 If you need more control over the default specification, here are more options you can run against the files in this repository:
 
 ```sh
+# This won't push
 $ tinysemver --verbose \
     --major-verbs 'breaking,break,major' \
     --minor-verbs 'feature,minor,add,new' \
@@ -23,8 +24,9 @@ $ tinysemver --verbose \
     --changelog-file 'CHANGELOG.md' \
     --version-file 'VERSION' \
     --update-version-in 'pyproject.toml' '^version = "(\d+\.\d+\.\d+)"' \
-    --github-repository 'ashvardanian/tinysemver' \
-    --dry-run
+    --github-repository 'ashvardanian/tinysemver'
+# Revert to the previous commit
+$ git reset --soft HEAD~1                         
 ```
 
 It's recommended to use strict version matching with `\d+\.\d+\.\d+` instead of a generic wildcard like `.*`, but both would work.

@@ -209,7 +209,10 @@ def patch_with_regex(
     def replace_first_group(match):
         assert len(match.groups()) == 1, f"Must contain exactly one capturing group in: {regex_pattern} for {file_path}"
         range_to_replace = match.span(1)
-        return match.string[: range_to_replace[0]] + new_version + match.string[range_to_replace[1] :]
+        old_slice = match.span(0)
+        old_string = match.string[old_slice[0] : old_slice[1]]
+        updated = old_string[: range_to_replace[0]-old_slice[0]] + new_version + old_string[range_to_replace[1]-old_slice[0]:]
+        return updated
 
     # Without using the re.MULTILINE flag,
     # the ^ and $ anchors match the start and end of the whole string.
