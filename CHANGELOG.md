@@ -141,3 +141,10 @@
 ### Patch
 
 - Fix: Checkout from `main`
+
+## August 05, 2024: v1.3.3
+
+### Patch
+
+- Improve: Trigger minor releases for docs
+- Docs: Providing examples
