@@ -1,5 +1,9 @@
 name: "TinySemVer"
 description: "A tiny Python script that helps you manage your project's versioning"
+branding:
+  icon: "at-sign"
+  color: "purple"
+author: "Ash Vardanian, Guillaume de Rouville" 
 inputs:
   dry-run:
     description: "Do not create a new tag"
