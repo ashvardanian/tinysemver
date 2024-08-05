@@ -20,7 +20,7 @@ If you need more control over the default specification, here are more options y
 $ tinysemver --verbose \
     --major-verbs 'breaking,break,major' \
     --minor-verbs 'feature,minor,add,new' \
-    --patch-verbs 'fix,patch,bug,improve' \
+    --patch-verbs 'fix,patch,bug,improve,docs' \
     --changelog-file 'CHANGELOG.md' \
     --version-file 'VERSION' \
     --update-version-in 'pyproject.toml' '^version = "(\d+\.\d+\.\d+)"' \
@@ -36,7 +36,7 @@ Here is an example of passing even more parameters for a project like `stringzil
 $ tinysemver --verbose \
     --major-verbs 'breaking,break,major' \
     --minor-verbs 'feature,minor,add,new' \
-    --patch-verbs 'fix,patch,bug,improve' \
+    --patch-verbs 'fix,patch,bug,improve,docs' \
     --changelog-file 'CHANGELOG.md' \
     --version-file 'VERSION' \
     --update-version-in 'pyproject.toml' '^version = "(\d+\.\d+\.\d+)"' \
@@ -272,7 +272,7 @@ $ wget https://github.com/unum-cloud/usearch/raw/main/include/usearch/index.hpp 
 $ tinysemver --dry-run --verbose \
     --major-verbs 'breaking,break,major' \
     --minor-verbs 'feature,minor,add,new' \
-    --patch-verbs 'fix,patch,bug,improve' \
+    --patch-verbs 'fix,patch,bug,improve,docs' \
     --version-file 'example/VERSION' \
     --changelog-file 'example/CHANGELOG.md' \
     --update-version-in 'example/CITATION.cff' '^version: (\d+\.\d+\.\d+)' \

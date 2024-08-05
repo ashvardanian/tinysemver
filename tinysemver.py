@@ -13,7 +13,7 @@ Example:
     tinysemver --dry-run --verbose \
         --major-verbs 'breaking,break,major' \
         --minor-verbs 'feature,minor,add,new' \
-        --patch-verbs 'fix,patch,bug,improve' \
+        --patch-verbs 'fix,patch,bug,improve,docs' \
         --changelog-file 'CHANGELOG.md' \
         --version-file 'VERSION' \
         --update-version-in 'package.json' '"version": "(.*)"' \
