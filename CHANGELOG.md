@@ -135,3 +135,9 @@
 ### Patch
 
 - Improve: Use `skip ci` to avoid recursive calls
+
+## August 05, 2024: v1.3.2
+
+### Patch
+
+- Fix: Checkout from `main`
