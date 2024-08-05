@@ -9,16 +9,39 @@
 name: Release
 
 on:
-  release:
-    types: [published]
+  push:
+    branches: [main]
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
+  semver:
+    runs-on: ubuntu-latest
+    name: Update Version
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Print Environment Variables
+        run: |
+          env
+      - name: Run TinySemVer
+        uses: ./ # This uses the action defined in the current repository
+        with:
+          verbose: "true"
+          push: "true"
+          changelog-file: "CHANGELOG.md"
+          version-file: "VERSION"
+          update-version-in: 'pyproject.toml,version = "(.*)"'
+          github-token: ${{ secrets.TINYSEMVER_TOKEN }}
+          create-release: "true"
+
   publish_python:
     name: Publish Python
     runs-on: ubuntu-latest
+    needs: semver
     environment:
       name: pypi
       url: https://pypi.org/p/tinysemver

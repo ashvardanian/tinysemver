@@ -137,6 +137,7 @@ def bump_version(version: SemVer, bump_type: BumpType) -> SemVer:
     elif bump_type == "patch":
         return major, minor, patch + 1
 
+
 def create_tag(
     *,  # enforce keyword-only arguments
     repository_path: PathLike,
@@ -156,19 +157,15 @@ def create_tag(
     env["GIT_AUTHOR_NAME"] = user_name
     env["GIT_AUTHOR_EMAIL"] = user_email
     env["GITHUB_TOKEN"] = github_token
-    message = f"Release: {tag}"
+    message = f"Release: {tag} [skip ci]"
     subprocess.run(["git", "add", "-A"], cwd=repository_path)
     subprocess.run(["git", "commit", "-m", message], cwd=repository_path, env=env)
-    
-     # Get the SHA of the new commit
+
+    # Get the SHA of the new commit
     new_commit_sha = subprocess.run(
-        ["git", "rev-parse", "HEAD"],
-        cwd=repository_path,
-        capture_output=True,
-        text=True,
-        check=True
+        ["git", "rev-parse", "HEAD"], cwd=repository_path, capture_output=True, text=True, check=True
     ).stdout.strip()
-    
+
     subprocess.run(["git", "tag", "-a", tag, "-m", message, new_commit_sha], cwd=repository_path, env=env)
     print(f"Created new tag: {tag}")
     if push:
@@ -187,34 +184,51 @@ def create_tag(
         #     raise RuntimeError("Failed to pull the latest changes from the remote repository")
 
         # Push both commits and the tag
-        push_result = subprocess.run(["git", "push", url, f"{new_commit_sha}:{default_branch}"], cwd=repository_path, capture_output=True, env=env)
+        push_result = subprocess.run(
+            ["git", "push", url, f"{new_commit_sha}:{default_branch}"],
+            cwd=repository_path,
+            capture_output=True,
+            env=env,
+        )
         if push_result.returncode != 0:
-            raise RuntimeError(f"Failed to push the new commits to the remote repository: '{url}' with error: {push_result.stderr}")
+            raise RuntimeError(
+                f"Failed to push the new commits to the remote repository: '{url}' with error: {push_result.stderr}"
+            )
 
         push_result = subprocess.run(["git", "push", url, "--tag"], cwd=repository_path, capture_output=True, env=env)
         if push_result.returncode != 0:
-            raise RuntimeError(f"Failed to push the new tag to the remote repository: '{url}' with error: {push_result.stderr}")
+            raise RuntimeError(
+                f"Failed to push the new tag to the remote repository: '{url}' with error: {push_result.stderr}"
+            )
         print(f"Pushed to: {url}")
 
-         # Create a release using GitHub CLI if available
+        # Create a release using GitHub CLI if available
         if create_release and github_repository:
             try:
                 # Check if GitHub CLI is available
                 subprocess.run(["gh", "--version"], check=True, capture_output=True)
-                
+
                 # Create the release
                 release_command = [
-                    "gh", "release", "create", tag,
-                    "--title", f"Release {tag}",
-                    "--notes", message,
-                    "--repo", github_repository
+                    "gh",
+                    "release",
+                    "create",
+                    tag,
+                    "--title",
+                    f"Release {tag}",
+                    "--notes",
+                    message,
+                    "--repo",
+                    github_repository,
                 ]
-                
+
                 if github_token:
                     env["GITHUB_TOKEN"] = github_token
-                
-                release_result = subprocess.run(release_command, cwd=repository_path, capture_output=True, text=True, env=env)
-                
+
+                release_result = subprocess.run(
+                    release_command, cwd=repository_path, capture_output=True, text=True, env=env
+                )
+
                 if release_result.returncode == 0:
                     print(f"Created GitHub release for tag: {tag}")
                 else:
@@ -241,7 +255,11 @@ def patch_with_regex(
         range_to_replace = match.span(1)
         old_slice = match.span(0)
         old_string = match.string[old_slice[0] : old_slice[1]]
-        updated = old_string[: range_to_replace[0]-old_slice[0]] + new_version + old_string[range_to_replace[1]-old_slice[0]:]
+        updated = (
+            old_string[: range_to_replace[0] - old_slice[0]]
+            + new_version
+            + old_string[range_to_replace[1] - old_slice[0] :]
+        )
         return updated
 
     # Without using the re.MULTILINE flag,
@@ -417,7 +435,7 @@ def bump(
 
 
 def main():
-    if 'GITHUB_ACTIONS' not in os.environ:
+    if "GITHUB_ACTIONS" not in os.environ:
         parser = argparse.ArgumentParser(description="Tiny Semantic Versioning tool")
         parser.add_argument(
             "--dry-run",
@@ -520,28 +538,44 @@ def main():
         )
         args = parser.parse_args()
     else:
+
         class Args:
             pass
+
         args = Args()
-        args.dry_run = os.environ.get('TINYSEMVER_DRY_RUN', '').lower() == 'true'
-        args.verbose = os.environ.get('TINYSEMVER_VERBOSE', '').lower() == 'true'
-        args.push = os.environ.get('TINYSEMVER_PUSH', '').lower() == 'true'
-        args.major_verbs = os.environ.get('TINYSEMVER_MAJOR_VERBS') or 'breaking,break,major'
-        args.minor_verbs = os.environ.get('TINYSEMVER_MINOR_VERBS') or 'feature,minor,add,new'
-        args.patch_verbs = os.environ.get('TINYSEMVER_PATCH_VERBS') or 'fix,patch,bug,improve,docs'
-        args.default_branch = os.environ.get('TINYSEMVER_DEFAULT_BRANCH') or 'main'
-        args.changelog_file = os.environ.get('TINYSEMVER_CHANGELOG_FILE')
-        args.version_file = os.environ.get('TINYSEMVER_VERSION_FILE')
-        args.update_version_in = [tuple(item.split(',')) for item in os.environ.get('TINYSEMVER_UPDATE_VERSION_IN', '').split(';') if item]
-        args.update_major_version_in = [tuple(item.split(',')) for item in os.environ.get('TINYSEMVER_UPDATE_MAJOR_VERSION_IN', '').split(';') if item]
-        args.update_minor_version_in = [tuple(item.split(',')) for item in os.environ.get('TINYSEMVER_UPDATE_MINOR_VERSION_IN', '').split(';') if item]
-        args.update_patch_version_in = [tuple(item.split(',')) for item in os.environ.get('TINYSEMVER_UPDATE_PATCH_VERSION_IN', '').split(';') if item]
-        args.path = os.environ.get('TINYSEMVER_REPO_PATH')
-        args.git_user_name = os.environ.get('TINYSEMVER_GIT_USER_NAME', 'TinySemVer')
-        args.git_user_email = os.environ.get('TINYSEMVER_GIT_USER_EMAIL', 'tinysemver@ashvardanian.com')
-        args.github_token = os.environ.get('GITHUB_TOKEN')
-        args.github_repository = os.environ.get('GITHUB_REPOSITORY')
-        args.create_release = os.environ.get('TINYSEMVER_CREATE_RELEASE', '').lower() == 'true'
+        args.dry_run = os.environ.get("TINYSEMVER_DRY_RUN", "").lower() == "true"
+        args.verbose = os.environ.get("TINYSEMVER_VERBOSE", "").lower() == "true"
+        args.push = os.environ.get("TINYSEMVER_PUSH", "").lower() == "true"
+        args.major_verbs = os.environ.get("TINYSEMVER_MAJOR_VERBS") or "breaking,break,major"
+        args.minor_verbs = os.environ.get("TINYSEMVER_MINOR_VERBS") or "feature,minor,add,new"
+        args.patch_verbs = os.environ.get("TINYSEMVER_PATCH_VERBS") or "fix,patch,bug,improve,docs"
+        args.default_branch = os.environ.get("TINYSEMVER_DEFAULT_BRANCH") or "main"
+        args.changelog_file = os.environ.get("TINYSEMVER_CHANGELOG_FILE")
+        args.version_file = os.environ.get("TINYSEMVER_VERSION_FILE")
+        args.update_version_in = [
+            tuple(item.split(",")) for item in os.environ.get("TINYSEMVER_UPDATE_VERSION_IN", "").split(";") if item
+        ]
+        args.update_major_version_in = [
+            tuple(item.split(","))
+            for item in os.environ.get("TINYSEMVER_UPDATE_MAJOR_VERSION_IN", "").split(";")
+            if item
+        ]
+        args.update_minor_version_in = [
+            tuple(item.split(","))
+            for item in os.environ.get("TINYSEMVER_UPDATE_MINOR_VERSION_IN", "").split(";")
+            if item
+        ]
+        args.update_patch_version_in = [
+            tuple(item.split(","))
+            for item in os.environ.get("TINYSEMVER_UPDATE_PATCH_VERSION_IN", "").split(";")
+            if item
+        ]
+        args.path = os.environ.get("TINYSEMVER_REPO_PATH")
+        args.git_user_name = os.environ.get("TINYSEMVER_GIT_USER_NAME", "TinySemVer")
+        args.git_user_email = os.environ.get("TINYSEMVER_GIT_USER_EMAIL", "tinysemver@ashvardanian.com")
+        args.github_token = os.environ.get("GITHUB_TOKEN")
+        args.github_repository = os.environ.get("GITHUB_REPOSITORY")
+        args.create_release = os.environ.get("TINYSEMVER_CREATE_RELEASE", "").lower() == "true"
 
     try:
         bump(
