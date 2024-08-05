@@ -20,13 +20,11 @@ jobs:
     runs-on: ubuntu-latest
     name: Update Version
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
           persist-credentials: false
-      - name: Print Environment Variables
-        run: |
-          env
       - name: Run TinySemVer
         uses: ./ # This uses the action defined in the current repository
         with:
@@ -49,7 +47,10 @@ jobs:
       id-token: write
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: "main"
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
