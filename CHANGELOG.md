@@ -129,3 +129,9 @@
 - Docs: Links and instructions
 - Fix: Remove repeated `pyproject.toml` lines
 - Improve: Log failed push URL
+
+## August 05, 2024: v1.3.1
+
+### Patch
+
+- Improve: Use `skip ci` to avoid recursive calls
