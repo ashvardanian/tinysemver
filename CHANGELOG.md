@@ -114,3 +114,18 @@
 
 - Docs: Fix project name
 
+
+## August 05, 2024: v1.3.0
+
+### Minor
+
+- feature: implement GitHub Action
+
+### Patch
+
+- Fix: Finalize the GitHub Action (#6)
+- Fix: Replacing slices
+- Fix: Lowercase name
+- Docs: Links and instructions
+- Fix: Remove repeated `pyproject.toml` lines
+- Improve: Log failed push URL
