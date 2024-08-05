@@ -166,3 +166,9 @@
 ### Major
 
 - Break: Multi-line YAML arguments
+
+## August 05, 2024: v2.0.1
+
+### Patch
+
+- Improve: Ignore subsequent colons
