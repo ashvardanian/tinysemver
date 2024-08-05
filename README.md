@@ -75,10 +75,13 @@ Alternatively, you can just ask for `--help`:
 $ tinysemver --help
 ```
 
-## Use the Action
+## GitHub CI Action
+
+TinySemVer can be easily integrated into your GitHub Actions CI pipeline.
+Assuming the differences between YAML and shell notation, some arguments are passed in a different form, like `--update-version-in`.
 
 ```yaml
-name: CI
+name: Release
 
 on:
   push:
@@ -89,30 +92,30 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-     - uses: actions/checkout@v4
-        with:
-          persist-credentials: false # only if main branch if protected
-    # Your existing steps...
+    - name: Checkout
+      uses: actions/checkout@v4
+      with:
+        persist-credentials: false # Only if main branch if protected
 
     - name: Run TinySemVer
-      uses: ashvardanian/tinysemver@v1
+      uses: ashvardanian/tinysemver@v2
       with:
-        dry-run: 'true'
-        verbose: 'true'
-        push: 'true'
         major-verbs: 'breaking,break,major'
         minor-verbs: 'feature,minor,add,new'
         patch-verbs: 'fix,patch,bug,improve,docs'
         changelog-file: 'CHANGELOG.md'
         version-file: 'VERSION'
-        update-version-in: 'pyproject.toml,version = "(.*)"'
+        update-version-in: 'pyproject.toml:version = "(.*)"' # Use colon instead of space
         git-user-name: 'GitHub Actions'
         git-user-email: 'actions@github.com'
         github-token: ${{ secrets.GITHUB_TOKEN }}
+        verbose: 'true'
+        push: 'true'
         create-release: 'true'
+        dry-run: 'false'
 
   publish:
-    needs: semver
+    needs: semver # Depends on the previous job
     runs-on: ubuntu-latest
 
     steps:
@@ -121,7 +124,21 @@ jobs:
           ref: main # Take the most recent updated version
 ```
 
-### Security Considerations for Protected Branches
+Every team has a different workflow, but a common pattern is to have one `release.yml` for the `main` branch and another `prerelease.yml` for the `main-dev` branch used as a staging area.
+The latter would run with `dry-run: 'true'` and `push: 'false'` to prevent pushing changes to the main repository.
+The `create-release` flag is optional and can be set to `false` if you don't want to create a new release on GitHub.
+If you need to update the version in multiple files, pass a multiline string with the `|` operator:
+
+```yaml
+        update-version-in: |
+          pyproject.toml:version = "(.*)"
+          package.json:"version": "(.*)"
+          CITATION.cff:version: "(.*)"
+```
+
+For examples, consider checking StringZilla, USearch, and other libraries using TinySemVer.
+
+### Security Considerations
 
 If your default branch is protected with a "pull request before merging" rule:
 
