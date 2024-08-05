@@ -553,22 +553,22 @@ def main():
         args.changelog_file = os.environ.get("TINYSEMVER_CHANGELOG_FILE")
         args.version_file = os.environ.get("TINYSEMVER_VERSION_FILE")
         args.update_version_in = [
-            tuple(item.split(":"))
+            tuple(item.split(":", 1))
             for item in os.environ.get("TINYSEMVER_UPDATE_VERSION_IN", "").split("\n")  #
             if item  #
         ]
         args.update_major_version_in = [
-            tuple(item.split(":"))
+            tuple(item.split(":", 1))
             for item in os.environ.get("TINYSEMVER_UPDATE_MAJOR_VERSION_IN", "").split("\n")
             if item
         ]
         args.update_minor_version_in = [
-            tuple(item.split(":"))
+            tuple(item.split(":", 1))
             for item in os.environ.get("TINYSEMVER_UPDATE_MINOR_VERSION_IN", "").split("\n")
             if item
         ]
         args.update_patch_version_in = [
-            tuple(item.split(":"))
+            tuple(item.split(":", 1))
             for item in os.environ.get("TINYSEMVER_UPDATE_PATCH_VERSION_IN", "").split("\n")
             if item
         ]

@@ -98,7 +98,7 @@ jobs:
         persist-credentials: false # Only if main branch if protected
 
     - name: Run TinySemVer
-      uses: ashvardanian/tinysemver@v2
+      uses: ashvardanian/tinysemver@v2.0.1
       with:
         major-verbs: 'breaking,break,major'
         minor-verbs: 'feature,minor,add,new'
