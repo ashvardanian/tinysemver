@@ -85,9 +85,7 @@ on:
     branches: [ main ]
 
 jobs:
-  build:
-    # Add this condition to skip recursive releases
-    if: "!contains(github.event.head_commit.message, 'Release:')"
+  semver:
     runs-on: ubuntu-latest
 
     steps:
@@ -97,7 +95,7 @@ jobs:
     # Your existing steps...
 
     - name: Run TinySemVer
-      uses: your-username/tinysemver@v1
+      uses: ashvardanian/tinysemver@v1
       with:
         dry-run: 'true'
         verbose: 'true'
@@ -112,6 +110,15 @@ jobs:
         git-user-email: 'actions@github.com'
         github-token: ${{ secrets.GITHUB_TOKEN }}
         create-release: 'true'
+
+  publish:
+    needs: semver
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main # Take the most recent updated version
 ```
 
 ### Security Considerations for Protected Branches
@@ -121,7 +128,8 @@ If your default branch is protected with a "pull request before merging" rule:
 1. A repository-scoped Personal Access Token (PAT) is required to push to the branch.
 2. Set `persist-credentials: false` in the `actions/checkout` step.
 
-⚠️ **Important Security Note:**
+Also keep in mind:
+
 - The default `GITHUB_TOKEN` cannot be used with protected branches.
 - Using a PAT instead of `GITHUB_TOKEN` poses security risks:
   - Workflows from any branch can access secret variables.
@@ -131,7 +139,8 @@ If your default branch is protected with a "pull request before merging" rule:
   - Prefer the `pull_request` workflow trigger, which limits permissions.
   - Be cautious: users with write access could still potentially exploit workflows to expose the PAT.
 
-Always follow the principle of least privilege when setting up tokens and permissions.
+> [!TIP]
+> Always follow the principle of least privilege when setting up tokens and permissions.
 
 For more information on CI configurations and pushing changes in GitHub Actions, see the [semantic-release GitHub Actions guide](https://github.com/semantic-release/semantic-release/blob/master/docs/recipes/ci-configurations/github-actions.md#pushing-packagejson-changes-to-a-master-branch).
 

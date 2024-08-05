@@ -10,6 +10,7 @@ readme = "README.md"
 license = { file = "LICENSE" }
 authors = [
     { name = "Ash Vardanian", email = "1983160+ashvardanian@users.noreply.github.com" },
+    { name = "Guillaume de Rouville", email = "31691250+grouville@users.noreply.github.com" },
 ]
 classifiers = [
     "Development Status :: 4 - Beta",
