@@ -154,3 +154,9 @@
 ### Minor
 
 - Add: Pre-release dry run
+
+## August 05, 2024: v1.4.1
+
+### Patch
+
+- Improve: add authors and icon to Action
