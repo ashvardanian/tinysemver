@@ -148,3 +148,9 @@
 
 - Improve: Trigger minor releases for docs
 - Docs: Providing examples
+
+## August 05, 2024: v1.4.0
+
+### Minor
+
+- Add: Pre-release dry run
