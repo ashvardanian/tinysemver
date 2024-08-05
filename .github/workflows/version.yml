@@ -16,6 +16,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          persist-credentials: false
       - name: Print Environment Variables
         run: |
           env
@@ -27,4 +28,5 @@ jobs:
           changelog-file: "CHANGELOG.md"
           version-file: "VERSION"
           update-version-in: 'pyproject.toml,version = "(.*)"'
-          github_token: ${{ secrets.TINYSEMVER_TOKEN }}
+          github-token: ${{ secrets.TINYSEMVER_TOKEN }}
+          create-release: "true"
