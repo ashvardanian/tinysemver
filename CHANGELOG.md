@@ -160,3 +160,9 @@
 ### Patch
 
 - Improve: add authors and icon to Action
+
+## August 05, 2024: v2.0.0
+
+### Major
+
+- Break: Multi-line YAML arguments
