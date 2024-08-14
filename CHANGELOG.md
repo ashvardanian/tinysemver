@@ -172,3 +172,9 @@
 ### Patch
 
 - Improve: Ignore subsequent colons
+
+## August 14, 2024: v2.0.2
+
+### Patch
+
+- Docs: Describe arguments
