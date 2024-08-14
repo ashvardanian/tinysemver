@@ -1,6 +1,6 @@
-# Tiny Sem Ver
+![](https://github.com/ashvardanian/ashvardanian/blob/master/repositories/TinySemVer.jpg)
 
-Minimalistic [Semantic Versioning](https://semver.org/) package for projects following [Conventional Commits](https://www.conventionalcommits.org/) in a single short Python file.
+__TinySemVer__ is a minimalistic [Semantic Versioning](https://semver.org/) package for projects following [Conventional Commits](https://www.conventionalcommits.org/) in a single short Python file.
 In plain English, if your commit messages look like `feat: add new feature` or `fix: bugfix`, this package will automate releasing new "GIT tags" based on the commit messages.
 Here is how to integrate it into your project CI:
 
@@ -13,6 +13,9 @@ $ tinysemver --dry-run --verbose
 
 The `--dry-run` flag will only print the next version without changing any files.
 Great for pre-release CI pipelines.
+
+## Usage Details for the Command Line Interface
+
 If you need more control over the default specification, here are more options you can run against the files in this repository:
 
 ```sh
@@ -75,7 +78,7 @@ Alternatively, you can just ask for `--help`:
 $ tinysemver --help
 ```
 
-## GitHub CI Action
+## Usage Details for the GitHub CI Action
 
 TinySemVer can be easily integrated into your GitHub Actions CI pipeline.
 Assuming the differences between YAML and shell notation, some arguments are passed in a different form, like `--update-version-in`.
@@ -161,11 +164,11 @@ Also keep in mind:
 
 For more information on CI configurations and pushing changes in GitHub Actions, see the [semantic-release GitHub Actions guide](https://github.com/semantic-release/semantic-release/blob/master/docs/recipes/ci-configurations/github-actions.md#pushing-packagejson-changes-to-a-master-branch).
 
-## Why?
+## Why Create Another SemVer Tool?
 
 In the past I was using [semantic-release](https://github.com/semantic-release/semantic-release) for my 10+ projects.
 At some point, a breaking change in the dependencies broke all my projects CI pipelines for a month, affecting dozens of tech companies using those libraries.
-I felt miserable trying to trace the issue and reluctant to go through 363K lines of low-quality JavaScript code to find the bug.
+I felt miserable trying to trace the issue and reluctant to go through __363K lines of low-quality JavaScript code__ to find the bug.
 Yes, it's 363K lines of code:
 
 ```sh
@@ -180,26 +183,7 @@ Language                      files          blank        comment           code
 --------------------------------------------------------------------------------
 JavaScript                     4902          48080          81205         363424
 TypeScript                      732           7008          73034          79367
-Markdown                        633          26835              0          66869
-JSON                            599             58              0          64808
-HTML                             86           1821              0          25365
-Python                           57           4985           9193          23704
-CSS                              97           1360            739           6346
-YAML                             73             79             51           1198
-CoffeeScript                     18            193             16           1122
-EJS                               1             67              0            521
-Lua                              22             95             29            434
-Handlebars                       11             30              0            188
-C#                                1             55              9            186
-Bourne Shell                      7             30             11            168
-Bourne Again Shell                2             22             24             84
-TOML                              1              8             31             80
-make                              3             17             11             57
-PowerShell                        2             12              4             48
-DOS Batch                         5              9              0             42
-Fish Shell                        1              5             14             21
-C++                               2             12             19             20
-Nix                               1              1              0             19
+...                             ...            ...            ...            ...
 --------------------------------------------------------------------------------
 SUM:                           7256          90782         164390         634071
 --------------------------------------------------------------------------------
@@ -209,20 +193,18 @@ Here is the `cloc` output for `tinysemver`:
 
 ```sh
 $ tinysemver$ cloc .
-      11 text files.
-       6 unique files.                              
+      17 text files.
+      13 unique files.                              
        6 files ignored.
 
 github.com/AlDanial/cloc v 1.96  T=0.01 s (660.7 files/s, 44267.6 lines/s)
 -------------------------------------------------------------------------------
 Language                     files          blank        comment           code
 -------------------------------------------------------------------------------
-Python                           1             45             27            194
-Markdown                         1             13              0             71
-TOML                             1              6              2             33
-Text                             3              1              0             10
+Python                           1             79             93            493
+...                            ...            ...            ...            ...
 -------------------------------------------------------------------------------
-SUM:                             6             65             29            308
+SUM:                            13            227            107           1124
 -------------------------------------------------------------------------------
 ```
 
@@ -232,41 +214,13 @@ SUM:                             6             65             29            308
 - Pre-release versions, like `1.2.3-alpha.1`. Not needed for most projects.
 - GenAI.
 
-For reference, according to SemVer 2.0, all [following versions](https://regex101.com/r/Ly7O1x/3/) are valid:
-
-```
-1.1.2-prerelease+meta
-1.1.2+meta
-1.1.2+meta-valid
-1.0.0-alpha
-1.0.0-beta
-1.0.0-alpha.beta.1
-1.0.0-alpha.1
-1.0.0-alpha0.valid
-1.0.0-alpha.0valid
-1.0.0-alpha-a.b-c-somethinglong+build.1-aef.1-its-okay
-1.0.0-rc.1+build.1
-2.0.0-rc.1+build.123
-1.2.3-beta
-10.2.3-DEV-SNAPSHOT
-1.2.3-SNAPSHOT-123
-2.0.0+build.1848
-2.0.1-alpha.1227
-1.0.0-alpha+beta
-1.2.3----RC-SNAPSHOT.12.9.1--.12+788
-1.2.3----R-S.12.9.1--.12+meta
-1.2.3----RC-SNAPSHOT.12.9.1--.12
-1.0.0+0.build.1-rc.10000aaa-kk-0.1
-1.0.0-0A.is.legal
-```
-
-Probably very useful for 2-3 projects, I didn't need to support any of them yet.
+> For reference, according to SemVer 2.0, all [following versions](https://regex101.com/r/Ly7O1x/3/) are valid: `1.1.2-prerelease+meta`, `1.1.2+meta`, `1.1.2+meta-valid`, `1.0.0-alpha`, `1.0.0-beta`, `1.0.0-alpha.beta.1`, `1.0.0-alpha.1`, `1.0.0-alpha0.valid`, `1.0.0-alpha.0valid`, `1.0.0-alpha-a.b-c-somethinglong+build.1-aef.1-its-okay`, `1.0.0-rc.1+build.1`, `2.0.0-rc.1+build.123`, `1.2.3-beta`, `10.2.3-DEV-SNAPSHOT`, `1.2.3-SNAPSHOT-123`, `2.0.0+build.1848`, `2.0.1-alpha.1227`, `1.0.0-alpha+beta`, `1.2.3----RC-SNAPSHOT.12.9.1--.12+788`, `1.2.3----R-S.12.9.1--.12+meta`, `1.2.3----RC-SNAPSHOT.12.9.1--.12`, `1.0.0+0.build.1-rc.10000aaa-kk-0.1`, `1.0.0-0A.is.legal`.
 
 ## Examples
 
 Assembling RegEx queries can be hard.
 Luckily, there aren't too many files to update in most projects.
-Below is an example of a pipeline for the USearch project, that has bindings to 10 programming languages.
+Below is an example of a pipeline for the [USearch](https://github.com/unum-cloud/usearch) project, that has bindings to 10 programming languages.
 Feel free to add other sources and examples.
 
 ```sh
