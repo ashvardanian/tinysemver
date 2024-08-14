@@ -19,7 +19,7 @@ If you need more control over the default specification, here are more options y
 $ tinysemver --verbose \
     --major-verbs 'breaking,break,major' \
     --minor-verbs 'feature,minor,add,new' \
-    --patch-verbs 'fix,patch,bug,improve' \
+    --patch-verbs 'fix,patch,bug,improve,docs,make' \
     --changelog-file 'CHANGELOG.md' \
     --version-file 'VERSION' \
     --update-version-in 'pyproject.toml' '^version = "(\d+\.\d+\.\d+)"' \ 
@@ -34,7 +34,7 @@ Here is an example of passing even more parameters for a project like `stringzil
 $ tinysemver --verbose \
     --major-verbs 'breaking,break,major' \
     --minor-verbs 'feature,minor,add,new' \
-    --patch-verbs 'fix,patch,bug,improve' \
+    --patch-verbs 'fix,patch,bug,improve,docs,make' \
     --changelog-file 'CHANGELOG.md' \
     --version-file 'VERSION' \
     --update-version-in 'pyproject.toml' '^version = "(\d+\.\d+\.\d+)"' \
@@ -64,7 +64,7 @@ $ tinysemver --verbose \
 > + version: 1.3.0                              # Only in verbose mode
 > Appending to changelog file: CHANGELOG.md
 > = skipping 250 lines                          # Only in verbose mode
-> + addng 30 lines                              # Only in verbose mode
+> + adding 30 lines                             # Only in verbose mode
 ```
 
 Alternatively, you can just ask for `--help`:
@@ -99,7 +99,7 @@ jobs:
         push: 'true'
         major-verbs: 'breaking,break,major'
         minor-verbs: 'feature,minor,add,new'
-        patch-verbs: 'fix,patch,bug,improve,docs'
+        patch-verbs: 'fix,patch,bug,improve,docs,make'
         changelog-file: 'CHANGELOG.md'
         version-file: 'VERSION'
         update-version-in: 'pyproject.toml,version = "(.*)"'
@@ -236,7 +236,7 @@ $ wget https://github.com/unum-cloud/usearch/raw/main/include/usearch/index.hpp 
 $ tinysemver --dry-run --verbose \
     --major-verbs 'breaking,break,major' \
     --minor-verbs 'feature,minor,add,new' \
-    --patch-verbs 'fix,patch,bug,improve' \
+    --patch-verbs 'fix,patch,bug,improve,docs,make' \
     --version-file 'example/VERSION' \
     --changelog-file 'example/CHANGELOG.md' \
     --update-version-in 'example/CITATION.cff' '^version: (\d+\.\d+\.\d+)' \
