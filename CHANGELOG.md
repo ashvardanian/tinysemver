@@ -113,3 +113,62 @@
 ### Patch
 
 - Docs: Fix project name
+
+
+## August 05, 2024: v1.3.0
+
+### Minor
+
+- feature: implement GitHub Action
+
+### Patch
+
+- Fix: Finalize the GitHub Action (#6)
+- Fix: Replacing slices
+- Fix: Lowercase name
+- Docs: Links and instructions
+- Fix: Remove repeated `pyproject.toml` lines
+- Improve: Log failed push URL
+
+## August 05, 2024: v1.3.1
+
+### Patch
+
+- Improve: Use `skip ci` to avoid recursive calls
+
+## August 05, 2024: v1.3.2
+
+### Patch
+
+- Fix: Checkout from `main`
+
+## August 05, 2024: v1.3.3
+
+### Patch
+
+- Improve: Trigger minor releases for docs
+- Docs: Providing examples
+
+## August 05, 2024: v1.4.0
+
+### Minor
+
+- Add: Pre-release dry run
+
+## August 05, 2024: v1.4.1
+
+### Patch
+
+- Improve: add authors and icon to Action
+
+## August 05, 2024: v2.0.0
+
+### Major
+
+- Break: Multi-line YAML arguments
+
+## August 05, 2024: v2.0.1
+
+### Patch
+
+- Improve: Ignore subsequent colons

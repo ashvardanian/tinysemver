@@ -155,6 +155,7 @@ def create_tag(
     github_token: Optional[str] = None,
     github_repository: Optional[str] = None,
     push: bool = False,
+    create_release: bool = False,
 ) -> None:
     """Create a new Git tag and optionally push it to a remote GitHub repository."""
 
@@ -164,8 +165,8 @@ def create_tag(
     env["GIT_COMMITTER_EMAIL"] = user_email
     env["GIT_AUTHOR_NAME"] = user_name
     env["GIT_AUTHOR_EMAIL"] = user_email
-    message = f"Release: {tag}"
-
+    env["GITHUB_TOKEN"] = github_token
+    message = f"Release: {tag} [skip ci]"
     subprocess.run(["git", "add", "-A"], cwd=repository_path)
     subprocess.run(["git", "commit", "-m", message], cwd=repository_path, env=env)
 
@@ -199,15 +200,56 @@ def create_tag(
         push_result = subprocess.run(
             ["git", "push", url, f"{new_commit_sha}:{default_branch}"],
             cwd=repository_path,
+            capture_output=True,
             env=env,
         )
         if push_result.returncode != 0:
-            raise RuntimeError(f"Failed to push the new commits to the remote repository: '{url}'")
+            raise RuntimeError(
+                f"Failed to push the new commits to the remote repository: '{url}' with error: {push_result.stderr}"
+            )
 
-        push_result = subprocess.run(["git", "push", url, "--tag"], cwd=repository_path, env=env)
+        push_result = subprocess.run(["git", "push", url, "--tag"], cwd=repository_path, capture_output=True, env=env)
         if push_result.returncode != 0:
-            raise RuntimeError(f"Failed to push the new tag to the remote repository: '{url}'")
+            raise RuntimeError(
+                f"Failed to push the new tag to the remote repository: '{url}' with error: {push_result.stderr}"
+            )
         print(f"Pushed to: {url}")
+
+        # Create a release using GitHub CLI if available
+        if create_release and github_repository:
+            try:
+                # Check if GitHub CLI is available
+                subprocess.run(["gh", "--version"], check=True, capture_output=True)
+
+                # Create the release
+                release_command = [
+                    "gh",
+                    "release",
+                    "create",
+                    tag,
+                    "--title",
+                    f"Release {tag}",
+                    "--notes",
+                    message,
+                    "--repo",
+                    github_repository,
+                ]
+
+                if github_token:
+                    env["GITHUB_TOKEN"] = github_token
+
+                release_result = subprocess.run(
+                    release_command, cwd=repository_path, capture_output=True, text=True, env=env
+                )
+
+                if release_result.returncode == 0:
+                    print(f"Created GitHub release for tag: {tag}")
+                else:
+                    print(f"Failed to create GitHub release: {release_result.stderr}")
+            except subprocess.CalledProcessError:
+                print("GitHub CLI not available. Skipping release creation.")
+            except Exception as e:
+                print(f"An error occurred while creating the release: {str(e)}")
 
 
 def patch_with_regex(
@@ -225,7 +267,14 @@ def patch_with_regex(
     def replace_first_group(match):
         assert len(match.groups()) == 1, f"Must contain exactly one capturing group in: {regex_pattern} for {file_path}"
         range_to_replace = match.span(1)
-        return match.string[: range_to_replace[0]] + new_version + match.string[range_to_replace[1] :]
+        old_slice = match.span(0)
+        old_string = match.string[old_slice[0] : old_slice[1]]
+        updated = (
+            old_string[: range_to_replace[0] - old_slice[0]]
+            + new_version
+            + old_string[range_to_replace[1] - old_slice[0] :]
+        )
+        return updated
 
     # Without using the re.MULTILINE flag,
     # the ^ and $ anchors match the start and end of the whole string.
@@ -271,6 +320,7 @@ def bump(
     github_token: Optional[str] = None,
     github_repository: Optional[str] = None,
     default_branch: str = "main",
+    create_release: bool = False,
 ) -> SemVer:
     """Primary function used to update the files (version, changelog, etc.), create a new Git tag, push it to a GitHub repository.
     It can be used for dry-runs to preview the changes without actually creating a new tag.
@@ -421,6 +471,7 @@ def bump(
             github_token=github_token,
             github_repository=github_repository,
             push=push,
+            create_release=create_release,
         )
 
 
@@ -524,6 +575,12 @@ def main():
             "--github-repository",
             help="GitHub repository in the 'owner/repo' format, if not set will use GH_REPOSITORY env var",
         )
+        parser.add_argument(
+            "--create-release",
+            action="store_true",
+            default=False,
+            help="Create a GitHub release using the GitHub CLI",
+        )
         args = parser.parse_args()
     else:
 
@@ -541,21 +598,23 @@ def main():
         args.changelog_file = os.environ.get("TINYSEMVER_CHANGELOG_FILE")
         args.version_file = os.environ.get("TINYSEMVER_VERSION_FILE")
         args.update_version_in = [
-            tuple(item.split(",")) for item in os.environ.get("TINYSEMVER_UPDATE_VERSION_IN", "").split(";") if item
+            tuple(item.split(":", 1))
+            for item in os.environ.get("TINYSEMVER_UPDATE_VERSION_IN", "").split("\n")  #
+            if item  #
         ]
         args.update_major_version_in = [
-            tuple(item.split(","))
-            for item in os.environ.get("TINYSEMVER_UPDATE_MAJOR_VERSION_IN", "").split(";")
+            tuple(item.split(":", 1))
+            for item in os.environ.get("TINYSEMVER_UPDATE_MAJOR_VERSION_IN", "").split("\n")
             if item
         ]
         args.update_minor_version_in = [
-            tuple(item.split(","))
-            for item in os.environ.get("TINYSEMVER_UPDATE_MINOR_VERSION_IN", "").split(";")
+            tuple(item.split(":", 1))
+            for item in os.environ.get("TINYSEMVER_UPDATE_MINOR_VERSION_IN", "").split("\n")
             if item
         ]
         args.update_patch_version_in = [
-            tuple(item.split(","))
-            for item in os.environ.get("TINYSEMVER_UPDATE_PATCH_VERSION_IN", "").split(";")
+            tuple(item.split(":", 1))
+            for item in os.environ.get("TINYSEMVER_UPDATE_PATCH_VERSION_IN", "").split("\n")
             if item
         ]
         args.path = os.environ.get("TINYSEMVER_REPO_PATH")
@@ -563,6 +622,7 @@ def main():
         args.git_user_email = os.environ.get("TINYSEMVER_GIT_USER_EMAIL", "tinysemver@ashvardanian.com")
         args.github_token = os.environ.get("GITHUB_TOKEN")
         args.github_repository = os.environ.get("GITHUB_REPOSITORY")
+        args.create_release = os.environ.get("TINYSEMVER_CREATE_RELEASE", "").lower() == "true"
 
     # It's common for a CI pipeline to have multiple broken settings or missing files.
     # For the best user experience, we want to catch all errors and print them at once,
@@ -591,6 +651,7 @@ def main():
             github_token=args.github_token,
             github_repository=args.github_repository,
             push=args.push,
+            create_release=args.create_release,
         )
     except AssertionError as e:
         print(f"! {e}")

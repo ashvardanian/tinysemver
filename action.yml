@@ -1,5 +1,9 @@
 name: "TinySemVer"
 description: "A tiny Python script that helps you manage your project's versioning"
+branding:
+  icon: "at-sign"
+  color: "purple"
+author: "Ash Vardanian, Guillaume de Rouville" 
 inputs:
   dry-run:
     description: "Do not create a new tag"
@@ -54,7 +58,10 @@ inputs:
   github-token:
     description: "GitHub access token to push to protected branches"
     required: false
-
+  create-release:
+    description: "Create a GitHub release using the GitHub CLI"
+    required: false
+    default: "false"
 runs:
   using: "composite"
   steps:
@@ -84,6 +91,7 @@ runs:
         GITHUB_TOKEN: ${{ inputs.github-token || github.token }}
         GITHUB_REPOSITORY: ${{ github.repository }}
         TINYSEMVER_DEFAULT_BRANCH: ${{ inputs.default-branch }}
+        TINYSEMVER_CREATE_RELEASE: ${{ inputs.create-release }}
       run: |
         cd $GITHUB_WORKSPACE
         python ${{ github.action_path }}/tinysemver.py

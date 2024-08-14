@@ -16,15 +16,17 @@ Great for pre-release CI pipelines.
 If you need more control over the default specification, here are more options you can run against the files in this repository:
 
 ```sh
+# This won't push
 $ tinysemver --verbose \
     --major-verbs 'breaking,break,major' \
     --minor-verbs 'feature,minor,add,new' \
     --patch-verbs 'fix,patch,bug,improve,docs,make' \
     --changelog-file 'CHANGELOG.md' \
     --version-file 'VERSION' \
-    --update-version-in 'pyproject.toml' '^version = "(\d+\.\d+\.\d+)"' \ 
-    --github-repository 'ashvardanian/tinysemver' \
-    --dry-run
+    --update-version-in 'pyproject.toml' '^version = "(\d+\.\d+\.\d+)"' \
+    --github-repository 'ashvardanian/tinysemver'
+# Revert to the previous commit
+$ git reset --soft HEAD~1                         
 ```
 
 It's recommended to use strict version matching with `\d+\.\d+\.\d+` instead of a generic wildcard like `.*`, but both would work.
@@ -73,40 +75,91 @@ Alternatively, you can just ask for `--help`:
 $ tinysemver --help
 ```
 
-## Use the Action
+## GitHub CI Action
+
+TinySemVer can be easily integrated into your GitHub Actions CI pipeline.
+Assuming the differences between YAML and shell notation, some arguments are passed in a different form, like `--update-version-in`.
 
 ```yaml
-name: CI
+name: Release
 
 on:
   push:
     branches: [ main ]
 
 jobs:
-  build:
-    # Add this condition to skip recursive releases
-    if: "!contains(github.event.head_commit.message, 'Release:')"
+  semver:
     runs-on: ubuntu-latest
 
     steps:
-    # Your existing steps...
+    - name: Checkout
+      uses: actions/checkout@v4
+      with:
+        persist-credentials: false # Only if main branch if protected
 
     - name: Run TinySemVer
-      uses: your-username/tinysemver@v1
+      uses: ashvardanian/tinysemver@v2.0.1
       with:
-        dry-run: 'true'
-        verbose: 'true'
-        push: 'true'
         major-verbs: 'breaking,break,major'
         minor-verbs: 'feature,minor,add,new'
         patch-verbs: 'fix,patch,bug,improve,docs,make'
         changelog-file: 'CHANGELOG.md'
         version-file: 'VERSION'
-        update-version-in: 'pyproject.toml,version = "(.*)"'
+        update-version-in: 'pyproject.toml:version = "(.*)"' # Use colon instead of space
         git-user-name: 'GitHub Actions'
         git-user-email: 'actions@github.com'
         github-token: ${{ secrets.GITHUB_TOKEN }}
+        verbose: 'true'
+        push: 'true'
+        create-release: 'true'
+        dry-run: 'false'
+
+  publish:
+    needs: semver # Depends on the previous job
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main # Take the most recent updated version
 ```
+
+Every team has a different workflow, but a common pattern is to have one `release.yml` for the `main` branch and another `prerelease.yml` for the `main-dev` branch used as a staging area.
+The latter would run with `dry-run: 'true'` and `push: 'false'` to prevent pushing changes to the main repository.
+The `create-release` flag is optional and can be set to `false` if you don't want to create a new release on GitHub.
+If you need to update the version in multiple files, pass a multiline string with the `|` operator:
+
+```yaml
+        update-version-in: |
+          pyproject.toml:version = "(.*)"
+          package.json:"version": "(.*)"
+          CITATION.cff:version: "(.*)"
+```
+
+For examples, consider checking StringZilla, USearch, and other libraries using TinySemVer.
+
+### Security Considerations
+
+If your default branch is protected with a "pull request before merging" rule:
+
+1. A repository-scoped Personal Access Token (PAT) is required to push to the branch.
+2. Set `persist-credentials: false` in the `actions/checkout` step.
+
+Also keep in mind:
+
+- The default `GITHUB_TOKEN` cannot be used with protected branches.
+- Using a PAT instead of `GITHUB_TOKEN` poses security risks:
+  - Workflows from any branch can access secret variables.
+  - This could allow non-protected branches to use elevated permissions.
+- Mitigation:
+  - Use a fine-grained PAT with minimal necessary permissions.
+  - Prefer the `pull_request` workflow trigger, which limits permissions.
+  - Be cautious: users with write access could still potentially exploit workflows to expose the PAT.
+
+> [!TIP]
+> Always follow the principle of least privilege when setting up tokens and permissions.
+
+For more information on CI configurations and pushing changes in GitHub Actions, see the [semantic-release GitHub Actions guide](https://github.com/semantic-release/semantic-release/blob/master/docs/recipes/ci-configurations/github-actions.md#pushing-packagejson-changes-to-a-master-branch).
 
 ## Why?
 
