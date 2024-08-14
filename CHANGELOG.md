@@ -178,3 +178,10 @@
 ### Patch
 
 - Docs: Describe arguments
+
+## August 14, 2024: v2.0.3
+
+### Patch
+
+- Docs: Cleaner `README.md`
+- Make: Bump Python CI version
