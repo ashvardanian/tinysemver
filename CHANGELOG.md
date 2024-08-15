@@ -198,3 +198,11 @@
 ### Patch
 
 - Fix: Indicate a package with `__init__.py`
+
+## August 15, 2024: v2.0.6
+
+### Patch
+
+- Make: Fix path to the local script
+- Fix: Change entrypoint
+- Make: Change directory structure
