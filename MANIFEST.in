@@ -1,4 +1,0 @@
-include __init__.py
-include tinysemver.py
-include LICENSE
-include README.md
