@@ -94,4 +94,4 @@ runs:
         TINYSEMVER_CREATE_RELEASE: ${{ inputs.create-release }}
       run: |
         cd $GITHUB_WORKSPACE
-        python ${{ github.action_path }}/tinysemver.py
+        python ${{ github.action_path }}/tinysemver/tinysemver.py
