@@ -1,1 +1,0 @@
-from .tinysemver import main

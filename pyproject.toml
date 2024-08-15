@@ -27,7 +27,7 @@ classifiers = [
 ]
 
 [project.scripts]
-tinysemver = "tinysemver:main"
+tinysemver = "tinysemver.tinysemver:main"
 
 [project.urls]
 Homepage = "https://pypi.org/project/tinysemver/"
