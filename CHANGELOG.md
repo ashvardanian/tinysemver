@@ -192,3 +192,9 @@
 
 - Improve: Add bug report
 - Fix: Put `tinysemver.py` into `.tar.gz`
+
+## August 15, 2024: v2.0.5
+
+### Patch
+
+- Fix: Indicate a package with `__init__.py`
