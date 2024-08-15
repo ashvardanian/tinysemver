@@ -185,3 +185,10 @@
 
 - Docs: Cleaner `README.md`
 - Make: Bump Python CI version
+
+## August 15, 2024: v2.0.4
+
+### Patch
+
+- Improve: Add bug report
+- Fix: Put `tinysemver.py` into `.tar.gz`
