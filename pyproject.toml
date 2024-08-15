@@ -38,6 +38,7 @@ Changelog = "https://github.com/ashvardanian/tinysemver/blob/main/CHANGELOG.md"
 
 [tool.setuptools]
 package-dir = { "" = "." }
+include-package-data = true
 
 [tool.setuptools.packages.find]
 where = ["."]
