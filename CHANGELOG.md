@@ -206,3 +206,9 @@
 - Make: Fix path to the local script
 - Fix: Change entrypoint
 - Make: Change directory structure
+
+## August 18, 2024: v2.0.7
+
+### Patch
+
+- Improve: Exit with code `0`, if no commits are found
