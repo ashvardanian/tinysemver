@@ -56,6 +56,12 @@ BumpType = Literal["major", "minor", "patch"]
 PathLike = Union[str, os.PathLike]
 
 
+class NoNewCommitsError(Exception):
+    """Raised when no new commits are found since the last tag."""
+
+    pass
+
+
 def get_last_tag(repository_path: PathLike) -> str:
     """Retrieve the last Git tag name from the repository."""
     result = subprocess.run(
@@ -403,7 +409,8 @@ def bump(
         print(f"Current version: {current_version[0]}.{current_version[1]}.{current_version[2]}")
 
     commits_hashes, commits_messages = get_commits_since_tag(repository_path, last_tag)
-    assert len(commits_hashes), f"No new commits since the last {last_tag} tag, aborting."
+    if not len(commits_hashes):
+        raise NoNewCommitsError(f"No new commits since the last {last_tag} tag")
 
     if verbose:
         print(f"? Commits since last tag: {len(commits_hashes)}")
@@ -653,6 +660,9 @@ def main():
             push=args.push,
             create_release=args.create_release,
         )
+    except NoNewCommitsError as e:
+        print(f"! {e}")
+        exit(0)
     except AssertionError as e:
         print(f"! {e}")
         exit(1)
