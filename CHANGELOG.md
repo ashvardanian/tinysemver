@@ -154,3 +154,61 @@
 ### Minor
 
 - Add: Pre-release dry run
+
+## August 05, 2024: v1.4.1
+
+### Patch
+
+- Improve: add authors and icon to Action
+
+## August 05, 2024: v2.0.0
+
+### Major
+
+- Break: Multi-line YAML arguments
+
+## August 05, 2024: v2.0.1
+
+### Patch
+
+- Improve: Ignore subsequent colons
+
+## August 14, 2024: v2.0.2
+
+### Patch
+
+- Docs: Describe arguments
+
+## August 14, 2024: v2.0.3
+
+### Patch
+
+- Docs: Cleaner `README.md`
+- Make: Bump Python CI version
+
+## August 15, 2024: v2.0.4
+
+### Patch
+
+- Improve: Add bug report
+- Fix: Put `tinysemver.py` into `.tar.gz`
+
+## August 15, 2024: v2.0.5
+
+### Patch
+
+- Fix: Indicate a package with `__init__.py`
+
+## August 15, 2024: v2.0.6
+
+### Patch
+
+- Make: Fix path to the local script
+- Fix: Change entrypoint
+- Make: Change directory structure
+
+## August 18, 2024: v2.0.7
+
+### Patch
+
+- Improve: Exit with code `0`, if no commits are found

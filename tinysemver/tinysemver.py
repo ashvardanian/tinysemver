@@ -13,7 +13,7 @@ Example:
     tinysemver --dry-run --verbose \
         --major-verbs 'breaking,break,major' \
         --minor-verbs 'feature,minor,add,new' \
-        --patch-verbs 'fix,patch,bug,improve,docs' \
+        --patch-verbs 'fix,patch,bug,improve,docs,make' \
         --changelog-file 'CHANGELOG.md' \
         --version-file 'VERSION' \
         --update-version-in 'package.json' '"version": "(.*)"' \
@@ -56,7 +56,14 @@ BumpType = Literal["major", "minor", "patch"]
 PathLike = Union[str, os.PathLike]
 
 
+class NoNewCommitsError(Exception):
+    """Raised when no new commits are found since the last tag."""
+
+    pass
+
+
 def get_last_tag(repository_path: PathLike) -> str:
+    """Retrieve the last Git tag name from the repository."""
     result = subprocess.run(
         ["git", "describe", "--tags", "--abbrev=0"],
         stdout=subprocess.PIPE,
@@ -69,6 +76,7 @@ def get_last_tag(repository_path: PathLike) -> str:
 
 
 def get_commits_since_tag(repository_path: PathLike, tag: str) -> Tuple[List[str], List[str]]:
+    """Get commit hashes and messages since the specified Git tag."""
     result = subprocess.run(
         ["git", "log", f"{tag}..HEAD", "--no-merges", "--pretty=format:%h:%s"],
         stdout=subprocess.PIPE,
@@ -85,6 +93,7 @@ def get_commits_since_tag(repository_path: PathLike, tag: str) -> Tuple[List[str
 
 
 def parse_version(tag: str) -> SemVer:
+    """Parse a version string from a Git tag name, assuming it looks like `v1.2.3`."""
     match = re.match(r"v?(\d+)\.(\d+)\.(\d+)", tag)
     if not match:
         raise ValueError(f"Tag {tag} is not in a recognized version format")
@@ -92,6 +101,7 @@ def parse_version(tag: str) -> SemVer:
 
 
 def commit_starts_with_verb(commit: str, verb: str) -> bool:
+    """Check if a commit message starts with a specific verb, ignoring capitalization and punctuation marks."""
     if commit.lower().startswith(verb):
         if len(commit) == len(verb) or commit[len(verb)].isspace() or commit[len(verb)] == ":":
             return True
@@ -99,6 +109,7 @@ def commit_starts_with_verb(commit: str, verb: str) -> bool:
 
 
 def normalize_verbs(verbs: Union[str, List[str]], defaults: List[str]) -> List[str]:
+    """Normalize a list of verbs, allowing string input to be split by commas."""
     if isinstance(verbs, str):
         return [verb.strip("\"'") for verb in verbs.split(",")]
     elif verbs is None:
@@ -113,6 +124,7 @@ def group_commits(
     minor_verbs: List[str],
     patch_verbs: List[str],
 ) -> Tuple[List[str], List[str], List[str]]:
+    """Group commits into major, minor, and patch categories based on keywords to simplify future `BumpType` resolution."""
     major_commits = []
     minor_commits = []
     patch_commits = []
@@ -129,6 +141,7 @@ def group_commits(
 
 
 def bump_version(version: SemVer, bump_type: BumpType) -> SemVer:
+    """Bump the version based on the specified bump type (major, minor, patch)."""
     major, minor, patch = version
     if bump_type == "major":
         return major + 1, 0, 0
@@ -150,6 +163,8 @@ def create_tag(
     push: bool = False,
     create_release: bool = False,
 ) -> None:
+    """Create a new Git tag and optionally push it to a remote GitHub repository."""
+
     tag = f"v{version[0]}.{version[1]}.{version[2]}"
     env = os.environ.copy()
     env["GIT_COMMITTER_NAME"] = user_name
@@ -163,7 +178,11 @@ def create_tag(
 
     # Get the SHA of the new commit
     new_commit_sha = subprocess.run(
-        ["git", "rev-parse", "HEAD"], cwd=repository_path, capture_output=True, text=True, check=True
+        ["git", "rev-parse", "HEAD"],
+        cwd=repository_path,
+        capture_output=True,
+        text=True,
+        check=True,
     ).stdout.strip()
 
     subprocess.run(["git", "tag", "-a", tag, "-m", message, new_commit_sha], cwd=repository_path, env=env)
@@ -246,6 +265,7 @@ def patch_with_regex(
     dry_run: bool = False,
     verbose: bool = False,
 ) -> None:
+    """Update a file by replacing the first matched group of every RegEx match with a new version."""
 
     with open(file_path, "r") as file:
         old_content = file.read()
@@ -292,14 +312,14 @@ def bump(
     verbose: bool = False,
     major_verbs: List[str] = ["major", "breaking", "break"],
     minor_verbs: List[str] = ["minor", "feature", "add", "new"],
-    patch_verbs: List[str] = ["patch", "fix", "bug", "improve", "docs"],
+    patch_verbs: List[str] = ["patch", "fix", "bug", "improve", "docs", "make"],
     path: Optional[PathLike] = None,  # takes current directory as default
     changelog_file: Optional[PathLike] = None,  # relative or absolute path to the changelog file
     version_file: Optional[PathLike] = None,  # relative or absolute path to the version file
-    update_version_in: Optional[List[Tuple[PathLike, str]]] = None,
-    update_major_version_in: Optional[List[Tuple[PathLike, str]]] = None,
-    update_minor_version_in: Optional[List[Tuple[PathLike, str]]] = None,
-    update_patch_version_in: Optional[List[Tuple[PathLike, str]]] = None,
+    update_version_in: Optional[List[Tuple[PathLike, str]]] = None,  # path + regex pattern pairs
+    update_major_version_in: Optional[List[Tuple[PathLike, str]]] = None,  # path + regex pattern pairs
+    update_minor_version_in: Optional[List[Tuple[PathLike, str]]] = None,  # path + regex pattern pairs
+    update_patch_version_in: Optional[List[Tuple[PathLike, str]]] = None,  # path + regex pattern pairs
     git_user_name: str = "TinySemVer",
     git_user_email: str = "tinysemver@ashvardanian.com",
     push: bool = True,
@@ -308,6 +328,33 @@ def bump(
     default_branch: str = "main",
     create_release: bool = False,
 ) -> SemVer:
+    """Primary function used to update the files (version, changelog, etc.), create a new Git tag, push it to a GitHub repository.
+    It can be used for dry-runs to preview the changes without actually creating a new tag.
+    It can be used as a standalone script or as a library function.
+
+    Args:
+        dry_run (bool): If True, performs a dry run without making any changes. Defaults to False.
+        verbose (bool): If True, enables verbose output. Defaults to False.
+        major_verbs (List[str]): List of keywords that indicate a major version bump. Defaults to ["major", "breaking", "break"].
+        minor_verbs (List[str]): List of keywords that indicate a minor version bump. Defaults to ["minor", "feature", "add", "new"].
+        patch_verbs (List[str]): List of keywords that indicate a patch version bump. Defaults to ["patch", "fix", "bug", "improve", "docs", "make"].
+        path (Optional[PathLike]): The path to the repository. If None, the current directory is used. Defaults to None.
+        changelog_file (Optional[PathLike]): The path to the changelog file to update. If None, no changelog update is performed. Defaults to None.
+        version_file (Optional[PathLike]): The path to the version file to update. If None, no version file update is performed. Defaults to None.
+        update_version_in (Optional[List[Tuple[PathLike, str]]]): List of (file, regex pattern) tuples to update the full version in specified files. Defaults to None.
+        update_major_version_in (Optional[List[Tuple[PathLike, str]]]): List of (file, regex pattern) tuples to update the major version in specified files. Defaults to None.
+        update_minor_version_in (Optional[List[Tuple[PathLike, str]]]): List of (file, regex pattern) tuples to update the minor version in specified files. Defaults to None.
+        update_patch_version_in (Optional[List[Tuple[PathLike, str]]]): List of (file, regex pattern) tuples to update the patch version in specified files. Defaults to None.
+        git_user_name (str): The Git user name for committing changes. Defaults to "TinySemVer".
+        git_user_email (str): The Git user email for committing changes. Defaults to "tinysemver@ashvardanian.com".
+        push (bool): If True, pushes the changes to the remote GitHub repository. Defaults to True.
+        github_token (Optional[str]): The GitHub token for authentication. If None, it attempts to use the GH_TOKEN environment variable. Defaults to None.
+        github_repository (Optional[str]): The GitHub repository in 'owner/repo' format. If None, it attempts to use the GH_REPOSITORY environment variable. Defaults to None.
+        default_branch (str): The default branch to push the changes to. Defaults to "main".
+
+    Returns:
+        SemVer: The new version after the bump.
+    """
 
     repository_path = os.path.abspath(path) if path else os.getcwd()
     assert os.path.isdir(os.path.join(repository_path, ".git")), f"Not a Git repository: {repository_path}"
@@ -352,7 +399,7 @@ def bump(
 
     major_verbs = normalize_verbs(major_verbs, ["major", "breaking", "break"])
     minor_verbs = normalize_verbs(minor_verbs, ["minor", "feature", "add", "new"])
-    patch_verbs = normalize_verbs(patch_verbs, ["patch", "fix", "bug", "improve", "docs"])
+    patch_verbs = normalize_verbs(patch_verbs, ["patch", "fix", "bug", "improve", "docs", "make"])
 
     last_tag = get_last_tag(repository_path)
     assert last_tag, f"No tags found in the repository: {repository_path}"
@@ -362,7 +409,8 @@ def bump(
         print(f"Current version: {current_version[0]}.{current_version[1]}.{current_version[2]}")
 
     commits_hashes, commits_messages = get_commits_since_tag(repository_path, last_tag)
-    assert len(commits_hashes), f"No new commits since the last {last_tag} tag, aborting."
+    if not len(commits_hashes):
+        raise NoNewCommitsError(f"No new commits since the last {last_tag} tag")
 
     if verbose:
         print(f"? Commits since last tag: {len(commits_hashes)}")
@@ -435,6 +483,10 @@ def bump(
 
 
 def main():
+    """
+    TinySemVer entrypoint responsible for parsing CLI arguments and environment variables,
+    preprocessing them and passing down to the `bump` function.
+    """
     if "GITHUB_ACTIONS" not in os.environ:
         parser = argparse.ArgumentParser(description="Tiny Semantic Versioning tool")
         parser.add_argument(
@@ -447,7 +499,7 @@ def main():
             "--verbose",
             action="store_true",
             default=False,
-            help="Print more informations",
+            help="Print more information",
         )
         parser.add_argument(
             "--push",
@@ -465,7 +517,7 @@ def main():
         )
         parser.add_argument(
             "--patch-verbs",
-            help="Comma-separated list of patch verbs, like 'fix,patch,bug,improve,docs'",
+            help="Comma-separated list of patch verbs, like 'fix,patch,bug,improve,docs,make'",
         )
         parser.add_argument(
             "--changelog-file",
@@ -548,26 +600,28 @@ def main():
         args.push = os.environ.get("TINYSEMVER_PUSH", "").lower() == "true"
         args.major_verbs = os.environ.get("TINYSEMVER_MAJOR_VERBS") or "breaking,break,major"
         args.minor_verbs = os.environ.get("TINYSEMVER_MINOR_VERBS") or "feature,minor,add,new"
-        args.patch_verbs = os.environ.get("TINYSEMVER_PATCH_VERBS") or "fix,patch,bug,improve,docs"
+        args.patch_verbs = os.environ.get("TINYSEMVER_PATCH_VERBS") or "fix,patch,bug,improve,docs,make"
         args.default_branch = os.environ.get("TINYSEMVER_DEFAULT_BRANCH") or "main"
         args.changelog_file = os.environ.get("TINYSEMVER_CHANGELOG_FILE")
         args.version_file = os.environ.get("TINYSEMVER_VERSION_FILE")
         args.update_version_in = [
-            tuple(item.split(",")) for item in os.environ.get("TINYSEMVER_UPDATE_VERSION_IN", "").split(";") if item
+            tuple(item.split(":", 1))
+            for item in os.environ.get("TINYSEMVER_UPDATE_VERSION_IN", "").split("\n")  #
+            if item  #
         ]
         args.update_major_version_in = [
-            tuple(item.split(","))
-            for item in os.environ.get("TINYSEMVER_UPDATE_MAJOR_VERSION_IN", "").split(";")
+            tuple(item.split(":", 1))
+            for item in os.environ.get("TINYSEMVER_UPDATE_MAJOR_VERSION_IN", "").split("\n")
             if item
         ]
         args.update_minor_version_in = [
-            tuple(item.split(","))
-            for item in os.environ.get("TINYSEMVER_UPDATE_MINOR_VERSION_IN", "").split(";")
+            tuple(item.split(":", 1))
+            for item in os.environ.get("TINYSEMVER_UPDATE_MINOR_VERSION_IN", "").split("\n")
             if item
         ]
         args.update_patch_version_in = [
-            tuple(item.split(","))
-            for item in os.environ.get("TINYSEMVER_UPDATE_PATCH_VERSION_IN", "").split(";")
+            tuple(item.split(":", 1))
+            for item in os.environ.get("TINYSEMVER_UPDATE_PATCH_VERSION_IN", "").split("\n")
             if item
         ]
         args.path = os.environ.get("TINYSEMVER_REPO_PATH")
@@ -576,6 +630,14 @@ def main():
         args.github_token = os.environ.get("GITHUB_TOKEN")
         args.github_repository = os.environ.get("GITHUB_REPOSITORY")
         args.create_release = os.environ.get("TINYSEMVER_CREATE_RELEASE", "").lower() == "true"
+
+    # It's common for a CI pipeline to have multiple broken settings or missing files.
+    # For the best user experience, we want to catch all errors and print them at once,
+    # instead of failing at the first error and exiting the script... forcing the user to
+    # fix one issue at a time, and re-run the script multiple times.
+    #
+    # TODO: To achieve this, on even on "real runs", we should first perform a "dry run" to catch,
+    # accumulate all errors
 
     try:
         bump(
@@ -598,6 +660,9 @@ def main():
             push=args.push,
             create_release=args.create_release,
         )
+    except NoNewCommitsError as e:
+        print(f"! {e}")
+        exit(0)
     except AssertionError as e:
         print(f"! {e}")
         exit(1)

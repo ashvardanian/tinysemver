@@ -33,5 +33,5 @@ jobs:
           verbose: "true"
           changelog-file: "CHANGELOG.md"
           version-file: "VERSION"
-          update-version-in: 'pyproject.toml,version = "(.*)"'
+          update-version-in: 'pyproject.toml:version = "(.*)"'
           dry-run: "true"

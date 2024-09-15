@@ -18,7 +18,7 @@
                 "--minor-verbs",
                 "feature,minor,add,new",
                 "--patch-verbs",
-                "fix,patch,bug,improve,docs",
+                "fix,patch,bug,improve,docs,make",
                 "--changelog-file",
                 "example/CHANGELOG.md",
                 "--version-file",
