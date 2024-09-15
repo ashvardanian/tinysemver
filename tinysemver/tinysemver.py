@@ -75,7 +75,7 @@ def get_last_tag(repository_path: PathLike) -> str:
     return result.stdout.strip().decode("utf-8")
 
 
-def get_commits_since_tag(repository_path: PathLike, tag: str) -> Tuple[List[str], List[str]]:
+def get_commits_since_tag(repository_path: PathLike, tag: str) -> List[Tuple[str, str]]:
     """Get commit hashes and messages since the specified Git tag."""
     result = subprocess.run(
         ["git", "log", f"{tag}..HEAD", "--no-merges", "--pretty=format:%h:%s"],
@@ -89,7 +89,7 @@ def get_commits_since_tag(repository_path: PathLike, tag: str) -> Tuple[List[str
     lines = result.stdout.strip().decode("utf-8").split("\n")
     hashes = [line.partition(":")[0] for line in lines if line.strip()]
     commits = [line.partition(":")[2] for line in lines if line.strip()]
-    return hashes, commits
+    return list(zip(hashes, commits))
 
 
 def parse_version(tag: str) -> SemVer:
@@ -119,22 +119,22 @@ def normalize_verbs(verbs: Union[str, List[str]], defaults: List[str]) -> List[s
 
 
 def group_commits(
-    commits: List[str],
+    commits: List[Tuple[str, str]],
     major_verbs: List[str],
     minor_verbs: List[str],
     patch_verbs: List[str],
-) -> Tuple[List[str], List[str], List[str]]:
+) -> Tuple[List[Tuple[str, str]], List[Tuple[str, str]], List[Tuple[str, str]]]:
     """Group commits into major, minor, and patch categories based on keywords to simplify future `BumpType` resolution."""
     major_commits = []
     minor_commits = []
     patch_commits = []
 
     for commit in commits:
-        if any(commit_starts_with_verb(commit, verb) for verb in major_verbs):
+        if any(commit_starts_with_verb(commit[1], verb) for verb in major_verbs):
             major_commits.append(commit)
-        if any(commit_starts_with_verb(commit, verb) for verb in minor_verbs):
+        if any(commit_starts_with_verb(commit[1], verb) for verb in minor_verbs):
             minor_commits.append(commit)
-        if any(commit_starts_with_verb(commit, verb) for verb in patch_verbs):
+        if any(commit_starts_with_verb(commit[1], verb) for verb in patch_verbs):
             patch_commits.append(commit)
 
     return major_commits, minor_commits, patch_commits
@@ -162,9 +162,9 @@ def create_tag(
     github_repository: Optional[str] = None,
     push: bool = False,
     create_release: bool = False,
-    major_commits: List[str] = None,
-    minor_commits: List[str] = None,
-    patch_commits: List[str] = None,
+    major_commits: List[Tuple[Str, Str]] = None,
+    minor_commits: List[Tuple[Str, Str]] = None,
+    patch_commits: List[Tuple[Str, Str]] = None,
 ) -> None:
     """Create a new Git tag and optionally push it to a remote GitHub repository."""
 
@@ -178,11 +178,11 @@ def create_tag(
 
     message = f"Release: {tag} [skip ci]"
     if major_commits:
-        message += f"\n### Major\n\n" + "\n".join(f"- {c}" for c in major_commits) + "\n"
+        message += f"\n### Major\n\n" + "\n".join(f"- {c[1]} ({c[0]})" for c in major_commits) + "\n"
     if minor_commits:
-        message += f"\n### Minor\n\n" + "\n".join(f"- {c}" for c in minor_commits) + "\n"
+        message += f"\n### Minor\n\n" + "\n".join(f"- {c[1]} ({c[0]})" for c in minor_commits) + "\n"
     if patch_commits:
-        message += f"\n### Patch\n\n" + "\n".join(f"- {c}" for c in patch_commits) + "\n"
+        message += f"\n### Patch\n\n" + "\n".join(f"- {c[1]} ({c[0]})" for c in patch_commits) + "\n"
 
     subprocess.run(["git", "add", "-A"], cwd=repository_path)
     subprocess.run(["git", "commit", "-m", message], cwd=repository_path, env=env)
@@ -419,19 +419,19 @@ def bump(
     if verbose:
         print(f"Current version: {current_version[0]}.{current_version[1]}.{current_version[2]}")
 
-    commits_hashes, commits_messages = get_commits_since_tag(repository_path, last_tag)
+    commits = get_commits_since_tag(repository_path, last_tag)
     if not len(commits_hashes):
         raise NoNewCommitsError(f"No new commits since the last {last_tag} tag")
 
     if verbose:
-        print(f"? Commits since last tag: {len(commits_hashes)}")
-        for hash, commit in zip(commits_hashes, commits_messages):
+        print(f"? Commits since last tag: {len(commits)}")
+        for hash, commit in commits:
             print(f"# {hash}: {commit}")
 
-    major_commits, minor_commits, patch_commits = group_commits(commits_messages, major_verbs, minor_verbs, patch_verbs)
+    major_commits, minor_commits, patch_commits = group_commits(commits, major_verbs, minor_verbs, patch_verbs)
     assert (
         len(major_commits) + len(minor_commits) + len(patch_commits)
-    ), "No commit categories found to bump the version: " + ", ".join(commits_messages)
+    ), "No commit categories found to bump the version: " + ", ".join(map(lambda c: c[1], commits))
 
     if len(major_commits):
         bump_type = "major"
@@ -451,16 +451,18 @@ def bump(
         now = datetime.now()
         changes = f"\n## {now:%B %d, %Y}: v{new_version_str}\n"
         if len(major_commits):
-            changes += f"\n### Major\n\n" + "\n".join(f"- {c}" for c in major_commits) + "\n"
+            changes += f"\n### Major\n\n" + "\n".join(f"- {c[1]} ({c[0]})" for c in major_commits) + "\n"
         if len(minor_commits):
-            changes += f"\n### Minor\n\n" + "\n".join(f"- {c}" for c in minor_commits) + "\n"
+            changes += f"\n### Minor\n\n" + "\n".join(f"- {c[1]} ({c[0]})" for c in minor_commits) + "\n"
         if len(patch_commits):
-            changes += f"\n### Patch\n\n" + "\n".join(f"- {c}" for c in patch_commits) + "\n"
+            changes += f"\n### Patch\n\n" + "\n".join(f"- {c[1]} ({c[0]})" for c in patch_commits) + "\n"
 
         print(f"Will update file: {changelog_file}")
         if verbose:
             changes_lines = changes.count("\n") + 1
             print(f"? Appending {changes_lines} lines")
+            for line in changes.split("\n"):
+                print(f"+ {line}")
 
         if not dry_run:
             with open(changelog_file, "a") as file:
