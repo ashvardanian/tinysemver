@@ -162,6 +162,9 @@ def create_tag(
     github_repository: Optional[str] = None,
     push: bool = False,
     create_release: bool = False,
+    major_commits: List[str] = None,
+    minor_commits: List[str] = None,
+    patch_commits: List[str] = None,
 ) -> None:
     """Create a new Git tag and optionally push it to a remote GitHub repository."""
 
@@ -172,7 +175,15 @@ def create_tag(
     env["GIT_AUTHOR_NAME"] = user_name
     env["GIT_AUTHOR_EMAIL"] = user_email
     env["GITHUB_TOKEN"] = github_token
+
     message = f"Release: {tag} [skip ci]"
+    if major_commits:
+        message += f"\n### Major\n\n" + "\n".join(f"- {c}" for c in major_commits) + "\n"
+    if minor_commits:
+        message += f"\n### Minor\n\n" + "\n".join(f"- {c}" for c in minor_commits) + "\n"
+    if patch_commits:
+        message += f"\n### Patch\n\n" + "\n".join(f"- {c}" for c in patch_commits) + "\n"
+
     subprocess.run(["git", "add", "-A"], cwd=repository_path)
     subprocess.run(["git", "commit", "-m", message], cwd=repository_path, env=env)
 
@@ -479,6 +490,9 @@ def bump(
             github_repository=github_repository,
             push=push,
             create_release=create_release,
+            major_commits=major_commits,
+            minor_commits=minor_commits,
+            patch_commits=patch_commits,
         )
 
 
