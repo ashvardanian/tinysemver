@@ -140,6 +140,24 @@ def group_commits(
     return major_commits, minor_commits, patch_commits
 
 
+def convert_commits_to_message(
+    major_commits: List[Tuple[Str, Str]],
+    minor_commits: List[Tuple[Str, Str]],
+    patch_commits: List[Tuple[Str, Str]],
+) -> Str:
+    """Turns the different commits (major, minor, patch) into a single message."""
+    message = ""
+
+    if len(major_commits):
+        message += f"\n### Major\n\n" + "\n".join(f"- {c[1]} ({c[0]})" for c in major_commits) + "\n"
+    if len(minor_commits):
+        message += f"\n### Minor\n\n" + "\n".join(f"- {c[1]} ({c[0]})" for c in minor_commits) + "\n"
+    if len(patch_commits):
+        message += f"\n### Patch\n\n" + "\n".join(f"- {c[1]} ({c[0]})" for c in patch_commits) + "\n"
+
+    return message
+
+
 def bump_version(version: SemVer, bump_type: BumpType) -> SemVer:
     """Bump the version based on the specified bump type (major, minor, patch)."""
     major, minor, patch = version
@@ -177,12 +195,7 @@ def create_tag(
     env["GITHUB_TOKEN"] = github_token
 
     message = f"Release: {tag} [skip ci]"
-    if major_commits:
-        message += f"\n### Major\n\n" + "\n".join(f"- {c[1]} ({c[0]})" for c in major_commits) + "\n"
-    if minor_commits:
-        message += f"\n### Minor\n\n" + "\n".join(f"- {c[1]} ({c[0]})" for c in minor_commits) + "\n"
-    if patch_commits:
-        message += f"\n### Patch\n\n" + "\n".join(f"- {c[1]} ({c[0]})" for c in patch_commits) + "\n"
+    message += convert_commits_to_message(major_commits or [], minor_commits or [], patch_commits or [])
 
     subprocess.run(["git", "add", "-A"], cwd=repository_path)
     subprocess.run(["git", "commit", "-m", message], cwd=repository_path, env=env)
@@ -450,12 +463,7 @@ def bump(
     if changelog_file:
         now = datetime.now()
         changes = f"\n## {now:%B %d, %Y}: v{new_version_str}\n"
-        if len(major_commits):
-            changes += f"\n### Major\n\n" + "\n".join(f"- {c[1]} ({c[0]})" for c in major_commits) + "\n"
-        if len(minor_commits):
-            changes += f"\n### Minor\n\n" + "\n".join(f"- {c[1]} ({c[0]})" for c in minor_commits) + "\n"
-        if len(patch_commits):
-            changes += f"\n### Patch\n\n" + "\n".join(f"- {c[1]} ({c[0]})" for c in patch_commits) + "\n"
+        changes += convert_commits_to_message(major_commits, minor_commits, patch_commits)
 
         print(f"Will update file: {changelog_file}")
         if verbose:
