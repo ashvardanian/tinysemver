@@ -47,14 +47,14 @@ import argparse
 import subprocess
 import re
 import os
-from typing import List, Tuple, Literal, Union, Optional
+from typing import List, Tuple, Literal, Union, Optional, NamedTuple
 from datetime import datetime
 import traceback
 
 SemVer = Tuple[int, int, int]
 BumpType = Literal["major", "minor", "patch"]
 PathLike = Union[str, os.PathLike]
-
+Commit = NamedTuple("Commit", [("hash", str), ("message", str)])
 
 class NoNewCommitsError(Exception):
     """Raised when no new commits are found since the last tag."""
@@ -75,7 +75,8 @@ def get_last_tag(repository_path: PathLike) -> str:
     return result.stdout.strip().decode("utf-8")
 
 
-def get_commits_since_tag(repository_path: PathLike, tag: str) -> List[Tuple[str, str]]:
+
+def get_commits_since_tag(repository_path: PathLike, tag: str) -> List[Commit]:
     """Get commit hashes and messages since the specified Git tag."""
     result = subprocess.run(
         ["git", "log", f"{tag}..HEAD", "--no-merges", "--pretty=format:%h:%s"],
@@ -88,8 +89,8 @@ def get_commits_since_tag(repository_path: PathLike, tag: str) -> List[Tuple[str
 
     lines = result.stdout.strip().decode("utf-8").split("\n")
     hashes = [line.partition(":")[0] for line in lines if line.strip()]
-    commits = [line.partition(":")[2] for line in lines if line.strip()]
-    return list(zip(hashes, commits))
+    messages = [line.partition(":")[2] for line in lines if line.strip()]
+    return [Commit(h, m) for h, m in zip(hashes, messages)]
 
 
 def parse_version(tag: str) -> SemVer:
@@ -119,41 +120,41 @@ def normalize_verbs(verbs: Union[str, List[str]], defaults: List[str]) -> List[s
 
 
 def group_commits(
-    commits: List[Tuple[str, str]],
+    commits: List[Commit],
     major_verbs: List[str],
     minor_verbs: List[str],
     patch_verbs: List[str],
-) -> Tuple[List[Tuple[str, str]], List[Tuple[str, str]], List[Tuple[str, str]]]:
+) -> Tuple[List[Commit], List[Commit], List[Commit]]:
     """Group commits into major, minor, and patch categories based on keywords to simplify future `BumpType` resolution."""
     major_commits = []
     minor_commits = []
     patch_commits = []
 
     for commit in commits:
-        if any(commit_starts_with_verb(commit[1], verb) for verb in major_verbs):
+        if any(commit_starts_with_verb(commit.message, verb) for verb in major_verbs):
             major_commits.append(commit)
-        if any(commit_starts_with_verb(commit[1], verb) for verb in minor_verbs):
+        if any(commit_starts_with_verb(commit.message, verb) for verb in minor_verbs):
             minor_commits.append(commit)
-        if any(commit_starts_with_verb(commit[1], verb) for verb in patch_verbs):
+        if any(commit_starts_with_verb(commit.message, verb) for verb in patch_verbs):
             patch_commits.append(commit)
 
     return major_commits, minor_commits, patch_commits
 
 
 def convert_commits_to_message(
-    major_commits: List[Tuple[Str, Str]],
-    minor_commits: List[Tuple[Str, Str]],
-    patch_commits: List[Tuple[Str, Str]],
-) -> Str:
+    major_commits: List[Commit],
+    minor_commits: List[Commit],
+    patch_commits: List[Commit],
+) -> str:
     """Turns the different commits (major, minor, patch) into a single message."""
     message = ""
 
     if len(major_commits):
-        message += f"\n### Major\n\n" + "\n".join(f"- {c[1]} ({c[0]})" for c in major_commits) + "\n"
+        message += f"\n### Major\n\n" + "\n".join(f"- {c.message} ({c.hash})" for c in major_commits) + "\n"
     if len(minor_commits):
-        message += f"\n### Minor\n\n" + "\n".join(f"- {c[1]} ({c[0]})" for c in minor_commits) + "\n"
+        message += f"\n### Minor\n\n" + "\n".join(f"- {c.message} ({c.hash})" for c in minor_commits) + "\n"
     if len(patch_commits):
-        message += f"\n### Patch\n\n" + "\n".join(f"- {c[1]} ({c[0]})" for c in patch_commits) + "\n"
+        message += f"\n### Patch\n\n" + "\n".join(f"- {c.message} ({c.hash})" for c in patch_commits) + "\n"
 
     return message
 
@@ -180,9 +181,9 @@ def create_tag(
     github_repository: Optional[str] = None,
     push: bool = False,
     create_release: bool = False,
-    major_commits: List[Tuple[Str, Str]] = None,
-    minor_commits: List[Tuple[Str, Str]] = None,
-    patch_commits: List[Tuple[Str, Str]] = None,
+    major_commits: List[Commit] = None,
+    minor_commits: List[Commit] = None,
+    patch_commits: List[Commit] = None,
 ) -> None:
     """Create a new Git tag and optionally push it to a remote GitHub repository."""
 
@@ -433,7 +434,7 @@ def bump(
         print(f"Current version: {current_version[0]}.{current_version[1]}.{current_version[2]}")
 
     commits = get_commits_since_tag(repository_path, last_tag)
-    if not len(commits_hashes):
+    if not len(commits):
         raise NoNewCommitsError(f"No new commits since the last {last_tag} tag")
 
     if verbose:
