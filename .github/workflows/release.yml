@@ -25,6 +25,8 @@ jobs:
         with:
           fetch-depth: 0
           persist-credentials: false
+      - name: Install Dependencies
+        run: pip install -r requirements.txt
       - name: Run TinySemVer
         uses: ./ # This uses the action defined in the current repository
         with:

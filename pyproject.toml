@@ -25,7 +25,7 @@ classifiers = [
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
 ]
-dependencies = ["openai >= 1.54.4"]
+dependencies = ["openai >= 1.54.4", "rich >= 13.8.0"]
 
 [project.scripts]
 tinysemver = "tinysemver.tinysemver:main"
