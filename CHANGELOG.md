@@ -221,3 +221,18 @@
 - Improve: Added function to convert the different commits into a message (4847361)
 - Improve: Added commit hashes to the end of the commit messages (533402b)
 - Improve: Added commit messages to the release notes (0f1c843)
+
+## November 17, 2024: v2.1.0
+
+### Minor
+
+- Add: AI & Rock-n-Roll (de8e5a2)
+
+### Patch
+
+- Improve: Optional dependencies (4ff62ee)
+- Make: Dependencies of publishing script (66d69f0)
+- Improve: Rich text output (9dbddca)
+- Make: `requirements.txt` (e0b362c)
+- Fix: Missing quote in YAML (f822b2e)
+- Improve: OpenAI action args (c9f5845)
