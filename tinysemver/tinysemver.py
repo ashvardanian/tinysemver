@@ -53,7 +53,6 @@ from typing import List, Tuple, Literal, Union, Optional, NamedTuple
 from datetime import datetime
 import traceback
 
-from openai import OpenAI
 
 SemVer = Tuple[int, int, int]
 BumpType = Literal["major", "minor", "patch"]
@@ -98,13 +97,35 @@ class UnknownCommitWarning(Warning):
     pass
 
 
+_console = None  # Initialize global console variable
+_console_is_rich = True  # Initialize global console type variable
 _openai_client = None  # Initialize global OpenAI client variable
 
 
-def get_open_ai_client(base_url: str, api_key: str) -> OpenAI:
+def print_to_console(message: str) -> None:
+    """Print a message to the console."""
+    global _console, _console_is_rich
+    if _console == None and _console_is_rich:
+        try:
+            from rich import Console
+
+            _console = Console()
+        except ImportError:
+            _console = None
+            _console_is_rich = False
+
+    if _console_is_rich:
+        _console.print(message)
+    else:
+        print(message)
+
+
+def get_open_ai_client(base_url: str, api_key: str):
     # Create a global variable for the client
     global _openai_client
     if not _openai_client:
+        from openai import OpenAI
+
         _openai_client = OpenAI(base_url=base_url, api_key=api_key)
     return _openai_client
 
@@ -271,7 +292,7 @@ def create_tag(
     ).stdout.strip()
 
     subprocess.run(["git", "tag", "-a", tag, "-m", message, new_commit_sha], cwd=repository_path, env=env)
-    print(f"Created new tag: {tag}")
+    print_to_console(f"[bold green]Created new tag:[/bold green] {tag}")
     if push:
         url = None
         if github_token and github_repository:
@@ -282,11 +303,6 @@ def create_tag(
             assert github_repository and not github_token, "You can't provide the GitHub token without the repository"
             url = f"https://github.com/{github_repository}"
 
-        # Pull the latest changes from the remote repository
-        # pull_result = subprocess.run(["git", "pull", "--merge", url], cwd=repository_path, env=env)
-        # if pull_result.returncode != 0:
-        #     raise RuntimeError("Failed to pull the latest changes from the remote repository")
-
         # Push both commits and the tag
         push_result = subprocess.run(
             ["git", "push", url, f"{new_commit_sha}:{default_branch}"],
@@ -296,15 +312,15 @@ def create_tag(
         )
         if push_result.returncode != 0:
             raise RuntimeError(
-                f"Failed to push the new commits to the remote repository: '{url}' with error: {push_result.stderr}"
+                f"Failed to push the new commits to the remote repository: '{url}' with error: {push_result.stderr.decode('utf-8')}"
             )
 
         push_result = subprocess.run(["git", "push", url, "--tag"], cwd=repository_path, capture_output=True, env=env)
         if push_result.returncode != 0:
             raise RuntimeError(
-                f"Failed to push the new tag to the remote repository: '{url}' with error: {push_result.stderr}"
+                f"Failed to push the new tag to the remote repository: '{url}' with error: {push_result.stderr.decode('utf-8')}"
             )
-        print(f"Pushed to: {url}")
+        print_to_console(f"[bold green]Pushed to:[/bold green] {url}")
 
         # Create a release using GitHub CLI if available
         if create_release and github_repository:
@@ -334,13 +350,15 @@ def create_tag(
                 )
 
                 if release_result.returncode == 0:
-                    print(f"Created GitHub release for tag: {tag}")
+                    print_to_console(f"[bold green]Created GitHub release for tag:[/bold green] {tag}")
                 else:
-                    print(f"Failed to create GitHub release: {release_result.stderr}")
+                    print_to_console(
+                        f"[bold red]Failed to create GitHub release:[/bold red] {release_result.stderr.strip()}"
+                    )
             except subprocess.CalledProcessError:
-                print("GitHub CLI not available. Skipping release creation.")
+                print_to_console("[bold yellow]GitHub CLI not available. Skipping release creation.[/bold yellow]")
             except Exception as e:
-                print(f"An error occurred while creating the release: {str(e)}")
+                print_to_console(f"[bold red]An error occurred while creating the release:[/bold red] {str(e)}")
 
 
 def patch_with_regex(
@@ -367,8 +385,7 @@ def patch_with_regex(
         )
         return updated
 
-    # Without using the re.MULTILINE flag,
-    # the ^ and $ anchors match the start and end of the whole string.
+    # Compile the regex pattern with multiline support
     regex_pattern = re.compile(regex_pattern, re.MULTILINE)
     matches = list(re.finditer(regex_pattern, old_content))
     new_content = re.sub(regex_pattern, replace_first_group, old_content, 1)
@@ -382,13 +399,15 @@ def patch_with_regex(
         new_slice = re.sub(regex_pattern, replace_first_group, old_slice, 1)
 
         if verbose:
-            print(f"Will update file: {file_path}:{match_line}")
-            print(f"- {old_slice}")
-            print(f"+ {new_slice}")
+            print_to_console(f"[bold cyan]Will update file:[/bold cyan] {file_path}:{match_line}")
+            print_to_console(f"[red]- {old_slice}[/red]")
+            print_to_console(f"[green]+ {new_slice}[/green]")
 
     if not dry_run:
         with open(file_path, "w") as file:
             file.write(new_content)
+        if verbose:
+            print_to_console(f"[bold green]File updated successfully:[/bold green] {file_path}")
 
 
 def validate_commit_with_llms(
@@ -473,7 +492,7 @@ def aggregate_release_notes_with_llms(
           ```math
           \\S_i(A, B, \\alpha, \\beta) = \\alpha \\cdot A_i + \\beta \\cdot B_i
           ```
-          
+
         - Use alerting quotes, like: [!CAUTION] or [!TIP], when needed.
     """
     header_message = f"""Commits:
