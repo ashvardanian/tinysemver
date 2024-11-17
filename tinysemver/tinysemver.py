@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""TinySemVer is a tiny Python script that helps you manage your project's versioning.
+"""TinySemVer is a tiny but mighty Semantic Versioning tool with AI, Drugs, and Rock-n-Roll.
 
 This module traces the commit history of a Git repository after the last tag, and based 
 on the commit messages, it determines the type of version bump (major, minor, or patch).
@@ -15,6 +15,7 @@ Example:
         --minor-verbs 'feature,minor,add,new' \
         --patch-verbs 'fix,patch,bug,improve,docs,make' \
         --changelog-file 'CHANGELOG.md' \
+        --guide-file 'CONTIBUTING.md' \
         --version-file 'VERSION' \
         --update-version-in 'package.json' '"version": "(.*)"' \
         --update-version-in 'CITATION.cff' '^version: (.*)' \
@@ -32,6 +33,7 @@ By default, the following conventions are used:
     - The repository must be a Git repository.
     - It must contain a "VERSION" and "CHANGELOG.md" files in the root directory.
     - The changelog is append-only - sorted in chronological order.
+    - The contibution guide is in the "CONTRIBUTING.md" file.
 
 Setting up a new project:
 
@@ -51,15 +53,60 @@ from typing import List, Tuple, Literal, Union, Optional, NamedTuple
 from datetime import datetime
 import traceback
 
+from openai import OpenAI
+
 SemVer = Tuple[int, int, int]
 BumpType = Literal["major", "minor", "patch"]
 PathLike = Union[str, os.PathLike]
 Commit = NamedTuple("Commit", [("hash", str), ("message", str)])
+ChangeDiff = str
+
 
 class NoNewCommitsError(Exception):
     """Raised when no new commits are found since the last tag."""
 
     pass
+
+
+class MayContainVulnerability(Warning):
+    """Raised when the commit may contain a vulnerability."""
+
+    pass
+
+
+class MayContainLogicalBugs(Warning):
+    """Raised when the commit may contain logical bugs."""
+
+    pass
+
+
+class MayContainBreakingChange(Warning):
+    """Raised when the commit may contain a breaking change."""
+
+    pass
+
+
+class MayLackDocumentation(Warning):
+    """Raised when the commit may lack documentation updates."""
+
+    pass
+
+
+class UnknownCommitWarning(Warning):
+    """Something in the commit doesn't add up."""
+
+    pass
+
+
+_openai_client = None  # Initialize global OpenAI client variable
+
+
+def get_open_ai_client(base_url: str, api_key: str) -> OpenAI:
+    # Create a global variable for the client
+    global _openai_client
+    if not _openai_client:
+        _openai_client = OpenAI(base_url=base_url, api_key=api_key)
+    return _openai_client
 
 
 def get_last_tag(repository_path: PathLike) -> str:
@@ -73,7 +120,6 @@ def get_last_tag(repository_path: PathLike) -> str:
     if result.returncode != 0:
         return None
     return result.stdout.strip().decode("utf-8")
-
 
 
 def get_commits_since_tag(repository_path: PathLike, tag: str) -> List[Commit]:
@@ -91,6 +137,20 @@ def get_commits_since_tag(repository_path: PathLike, tag: str) -> List[Commit]:
     hashes = [line.partition(":")[0] for line in lines if line.strip()]
     messages = [line.partition(":")[2] for line in lines if line.strip()]
     return [Commit(h, m) for h, m in zip(hashes, messages)]
+
+
+def get_diff_for_commit(repository_path: PathLike, commit_hash: str) -> ChangeDiff:
+    """Retrieve the diff for a specific commit and parse into Change named tuples."""
+    result = subprocess.run(
+        ["git", "diff", f"{commit_hash}^", commit_hash, "--unified=3"],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        cwd=repository_path,
+    )
+    if result.returncode != 0:
+        raise RuntimeError(f"Failed to retrieve diff for commit: {commit_hash}")
+
+    return result.stdout.decode("utf-8")
 
 
 def parse_version(tag: str) -> SemVer:
@@ -331,6 +391,111 @@ def patch_with_regex(
             file.write(new_content)
 
 
+def validate_commit_with_llms(
+    base_url: str,
+    api_key: str,
+    model: Optional[str],
+    commit: Commit,
+    change: ChangeDiff,
+) -> Optional[Warning]:
+    prompt = f"""
+        You are a professional coding assistant helping me to validate a commit message and its changes.
+        
+        1. Check if the changed code is likely to introduce logical bugs.
+        2. Check if the commit message is likely to contain a vulnerability.
+        3. Check if it contains a breaking change that is likely to affect users.
+        4. Check if the documentation wasn't updated for the changes made.
+
+        Don't let the commit message fool you, just look at the changes made in the code.
+        Reply by choosing any number from 0 to 4 and describe the issue, if anything is found.
+
+        0. No issues found.
+        1. The commit may introduce logical bugs, such as the overflow in ...
+        2. The commit may contain a vulnerability, such as the SQL injection in ...
+        3. The commit may contain a breaking change, such as the removal of ...
+        4. The commit may lack documentation updates for the changes made in function ...
+        """
+    message = f"""
+        #{commit.hash}: {commit.message}
+
+        Changes:
+
+        {change}
+        """
+    client = get_open_ai_client(base_url=base_url, api_key=api_key)
+    response = client.chat.completions.create(
+        messages=[
+            {"role": "system", "content": prompt},
+            {"role": "user", "content": message},
+        ],
+        max_tokens=256,
+        model=model,
+        stream=False,
+    )
+    response_text = response.choices[0].message.content
+    if response_text.startswith("0."):
+        return None
+    if response_text.startswith("1."):
+        return MayContainLogicalBugs(response_text)
+    if response_text.startswith("2."):
+        return MayContainVulnerability(response_text)
+    if response_text.startswith("3."):
+        return MayContainBreakingChange(response_text)
+    if response_text.startswith("4."):
+        return MayLackDocumentation(response_text)
+    return UnknownCommitWarning(response_text)
+
+
+def aggregate_release_notes_with_llms(
+    base_url: str,
+    api_key: str,
+    model: Optional[str],
+    github_repository: str,
+    commits: List[Commit],
+    changes: List[ChangeDiff],
+) -> str:
+
+    commits_with_hashes = "\n".join(f"- {commit.hash}: {commit.message}" for commit in commits)
+    prompt = f"""
+        You are a release notes generator for an advanced software project.
+
+        Aggregate the release notes for the upcoming version based on the commits and their 
+        changes replying in a Github-flavored Markdown format.
+
+        - Mention the new features, improvements, and bug fixes.
+        - Warn about potential breaking changes and vulnerabilities.
+        - Tag people and teams responsible for the changes.
+        - For the most important commits provide a link to the issue or pull request and 
+          a URL to that commit, like [commit](https://github.com/{github_repository}/commit/...).
+        - Don't guess anything, only use the information from the commits and their changes.
+        - Use inline math notation, like $\\beta=1$ or math blocks like the following, when needed:
+
+          ```math
+          \\S_i(A, B, \\alpha, \\beta) = \\alpha \\cdot A_i + \\beta \\cdot B_i
+          ```
+          
+        - Use alerting quotes, like: [!CAUTION] or [!TIP], when needed.
+    """
+    header_message = f"""Commits:
+
+    {commits_with_hashes}
+    """
+    changes_messages = [f"#{commit.hash}: {commit.message}\n{change}" for commit, change in zip(commits, changes)]
+
+    client = OpenAI(base_url=base_url, api_key=api_key)
+    response = client.chat.completions.create(
+        messages=[
+            {"role": "system", "content": prompt},
+            {"role": "user", "content": header_message},
+            *[{"role": "user", "content": message} for message in changes_messages],
+        ],
+        max_tokens=2048,
+        model=model,
+        stream=False,
+    )
+    return response.choices[0].message.content
+
+
 def bump(
     *,  # enforce keyword-only arguments
     dry_run: bool = False,
@@ -350,6 +515,9 @@ def bump(
     push: bool = True,
     github_token: Optional[str] = None,
     github_repository: Optional[str] = None,
+    openai_base_url: str = "https://api.openai.com",
+    openai_api_key: Optional[str] = None,
+    openai_model: Optional[str] = None,
     default_branch: str = "main",
     create_release: bool = False,
 ) -> SemVer:
@@ -375,6 +543,9 @@ def bump(
         push (bool): If True, pushes the changes to the remote GitHub repository. Defaults to True.
         github_token (Optional[str]): The GitHub token for authentication. If None, it attempts to use the GH_TOKEN environment variable. Defaults to None.
         github_repository (Optional[str]): The GitHub repository in 'owner/repo' format. If None, it attempts to use the GH_REPOSITORY environment variable. Defaults to None.
+        openai_base_url (str): The OpenAI API base URL. Defaults to "https://api.openai.com".
+        openai_api_key (Optional[str]): The OpenAI API key. Defaults to None.
+        openai_model (Optional[str]): The OpenAI model to use for text generation. Defaults to None.
         default_branch (str): The default branch to push the changes to. Defaults to "main".
 
     Returns:
@@ -489,6 +660,43 @@ def bump(
     if bump_type in ["major", "minor", "patch"] and update_patch_version_in:
         for file_path, regex_pattern in update_patch_version_in:
             patch_with_regex(file_path, regex_pattern, str(new_version[2]), dry_run=dry_run, verbose=verbose)
+
+    # Now log the potential issues with the commits
+    if openai_api_key:
+        warnings_commits = []
+        warnings = []
+        changes = [get_diff_for_commit(repository_path, commit.hash) for commit in commits]
+        for commit, change in zip(commits, changes):
+            try:
+                warning = validate_commit_with_llms(
+                    base_url=openai_base_url,
+                    api_key=openai_api_key,
+                    model=openai_model,
+                    commit=commit,
+                    change=change,
+                )
+                if warning:
+                    warnings_commits.append(commit)
+                    warnings.append(warning)
+            except Exception as e:
+                print(f"Failed to validate commit: {commit.hash} with error: {str(e)}")
+                traceback.print_exc()
+
+        if len(warnings):
+            print("## Potential issues")
+            for commit, warning in zip(warnings_commits, warnings):
+                print(f"- Commit #{commit.hash}: {warning}")
+
+        release_notes = aggregate_release_notes_with_llms(
+            base_url=openai_base_url,
+            api_key=openai_api_key,
+            model=openai_model,
+            github_repository=github_repository,
+            commits=commits,
+            changes=changes,
+        )
+        print("## Generated release notes:")
+        print(release_notes)
 
     if not dry_run:
         create_tag(
@@ -608,6 +816,19 @@ def main():
             help="GitHub repository in the 'owner/repo' format, if not set will use GH_REPOSITORY env var",
         )
         parser.add_argument(
+            "--openai-base-url",
+            default="https://api.openai.com",
+            help="OpenAI API base URL",
+        )
+        parser.add_argument(
+            "--openai-api-key",
+            help="OpenAI API key for text generation",
+        )
+        parser.add_argument(
+            "--openai-model",
+            help="OpenAI model to use for text generation (e.g., 'text-davinci-003' or 'text-davinci-002')",
+        )
+        parser.add_argument(
             "--create-release",
             action="store_true",
             default=False,
@@ -654,6 +875,9 @@ def main():
         args.git_user_email = os.environ.get("TINYSEMVER_GIT_USER_EMAIL", "tinysemver@ashvardanian.com")
         args.github_token = os.environ.get("GITHUB_TOKEN")
         args.github_repository = os.environ.get("GITHUB_REPOSITORY")
+        args.openai_base_url = os.environ.get("OPENAI_BASE_URL", "https://api.openai.com")
+        args.openai_api_key = os.environ.get("OPENAI_API_KEY")
+        args.openai_model = os.environ.get("OPENAI_MODEL")
         args.create_release = os.environ.get("TINYSEMVER_CREATE_RELEASE", "").lower() == "true"
 
     # It's common for a CI pipeline to have multiple broken settings or missing files.
@@ -682,6 +906,9 @@ def main():
             git_user_email=args.git_user_email,
             github_token=args.github_token,
             github_repository=args.github_repository,
+            openai_base_url=args.openai_base_url,
+            openai_api_key=args.openai_api_key,
+            openai_model=args.openai_model,
             push=args.push,
             create_release=args.create_release,
         )

@@ -1,4 +1,4 @@
-![](https://github.com/ashvardanian/ashvardanian/blob/master/repositories/TinySemVer.jpg)
+![TinySemVer Banner](https://github.com/ashvardanian/ashvardanian/blob/master/repositories/TinySemVer.jpg)
 
 __TinySemVer__ is a minimalistic [Semantic Versioning](https://semver.org/) package for projects following [Conventional Commits](https://www.conventionalcommits.org/) in a single short Python file.
 In plain English, if your commit messages look like `feat: add new feature` or `fix: bugfix`, this package will automate releasing new "GIT tags" based on the commit messages.
@@ -76,6 +76,19 @@ Alternatively, you can just ask for `--help`:
 
 ```sh
 $ tinysemver --help
+```
+
+## AI and Rock-n-Roll
+
+TinySemVer can leverage a language model to validate the commits and generate clean and infromative release notes.
+
+```sh
+$ tinysemver --verbose \
+    --github-repository 'ashvardanian/tinysemver' \
+    --openai-base-url 'https://api.groq.com/openai/v1' \
+    --openai-api-key 'GET_YOURSELF_A_KEY' \
+    --openai-model 'llama-3.2-11b-text-preview' \
+    --dry-run
 ```
 
 ## Usage Details for the GitHub CI Action

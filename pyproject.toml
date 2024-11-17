@@ -13,7 +13,7 @@ authors = [
     { name = "Guillaume de Rouville", email = "31691250+grouville@users.noreply.github.com" },
 ]
 classifiers = [
-    "Development Status :: 4 - Beta",
+    "Development Status :: 5 - Production/Stable",
     "Intended Audience :: Developers",
     "Topic :: Software Development :: Build Tools",
     "License :: OSI Approved :: Apache Software License",
@@ -25,6 +25,7 @@ classifiers = [
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
 ]
+dependencies = ["openai >= 1.54.4"]
 
 [project.scripts]
 tinysemver = "tinysemver.tinysemver:main"
