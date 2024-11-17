@@ -15,7 +15,7 @@ Example:
         --minor-verbs 'feature,minor,add,new' \
         --patch-verbs 'fix,patch,bug,improve,docs,make' \
         --changelog-file 'CHANGELOG.md' \
-        --guide-file 'CONTIBUTING.md' \
+        --guide-file 'CONTRIBUTING.md' \
         --version-file 'VERSION' \
         --update-version-in 'package.json' '"version": "(.*)"' \
         --update-version-in 'CITATION.cff' '^version: (.*)' \
@@ -479,7 +479,7 @@ def aggregate_release_notes_with_llms(
         You are a release notes generator for an advanced software project.
 
         Aggregate the release notes for the upcoming version based on the commits and their 
-        changes replying in a Github-flavored Markdown format.
+        changes replying in a GitHub-flavored Markdown format.
 
         - Mention the new features, improvements, and bug fixes.
         - Warn about potential breaking changes and vulnerabilities.
@@ -494,6 +494,8 @@ def aggregate_release_notes_with_llms(
           ```
 
         - Use alerting quotes, like: [!CAUTION] or [!TIP], when needed.
+
+        Most importantly, be concise and informative.
     """
     header_message = f"""Commits:
 
@@ -501,7 +503,7 @@ def aggregate_release_notes_with_llms(
     """
     changes_messages = [f"#{commit.hash}: {commit.message}\n{change}" for commit, change in zip(commits, changes)]
 
-    client = OpenAI(base_url=base_url, api_key=api_key)
+    client = get_open_ai_client(base_url=base_url, api_key=api_key)
     response = client.chat.completions.create(
         messages=[
             {"role": "system", "content": prompt},
@@ -621,16 +623,16 @@ def bump(
 
     current_version = parse_version(last_tag)
     if verbose:
-        print(f"Current version: {current_version[0]}.{current_version[1]}.{current_version[2]}")
+        print_to_console(f"Current version: {current_version[0]}.{current_version[1]}.{current_version[2]}")
 
     commits = get_commits_since_tag(repository_path, last_tag)
     if not len(commits):
         raise NoNewCommitsError(f"No new commits since the last {last_tag} tag")
 
     if verbose:
-        print(f"? Commits since last tag: {len(commits)}")
+        print_to_console(f"? Commits since last tag: {len(commits)}")
         for hash, commit in commits:
-            print(f"# {hash}: {commit}")
+            print_to_console(f"# {hash}: {commit}")
 
     major_commits, minor_commits, patch_commits = group_commits(commits, major_verbs, minor_verbs, patch_verbs)
     assert (
@@ -645,7 +647,7 @@ def bump(
         bump_type = "patch"
     new_version = bump_version(current_version, bump_type)
     if verbose:
-        print(f"Next version: {new_version[0]}.{new_version[1]}.{new_version[2]} (type: {bump_type})")
+        print_to_console(f"Next version: {new_version[0]}.{new_version[1]}.{new_version[2]} (type: {bump_type})")
 
     new_version_str = f"{new_version[0]}.{new_version[1]}.{new_version[2]}"
     if version_file:
@@ -656,12 +658,12 @@ def bump(
         changes = f"\n## {now:%B %d, %Y}: v{new_version_str}\n"
         changes += convert_commits_to_message(major_commits, minor_commits, patch_commits)
 
-        print(f"Will update file: {changelog_file}")
+        print_to_console(f"Will update file: {changelog_file}")
         if verbose:
             changes_lines = changes.count("\n") + 1
-            print(f"? Appending {changes_lines} lines")
+            print_to_console(f"? Appending {changes_lines} lines")
             for line in changes.split("\n"):
-                print(f"+ {line}")
+                print_to_console(f"+ {line}")
 
         if not dry_run:
             with open(changelog_file, "a") as file:
@@ -698,13 +700,13 @@ def bump(
                     warnings_commits.append(commit)
                     warnings.append(warning)
             except Exception as e:
-                print(f"Failed to validate commit: {commit.hash} with error: {str(e)}")
+                print_to_console(f"Failed to validate commit: {commit.hash} with error: {str(e)}")
                 traceback.print_exc()
 
         if len(warnings):
-            print("## Potential issues")
+            print_to_console("## Potential issues")
             for commit, warning in zip(warnings_commits, warnings):
-                print(f"- Commit #{commit.hash}: {warning}")
+                print_to_console(f"- Commit #{commit.hash}: {warning}")
 
         release_notes = aggregate_release_notes_with_llms(
             base_url=openai_base_url,
@@ -714,8 +716,8 @@ def bump(
             commits=commits,
             changes=changes,
         )
-        print("## Generated release notes:")
-        print(release_notes)
+        print_to_console("## Generated release notes:")
+        print_to_console(release_notes)
 
     if not dry_run:
         create_tag(
