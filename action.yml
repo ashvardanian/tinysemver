@@ -1,5 +1,5 @@
 name: "TinySemVer"
-description: "A tiny Python script that helps you manage your project's versioning"
+description: "Semantic-Versioning with LLMs and without 300,000 lines of JS"
 branding:
   icon: "at-sign"
   color: "purple"
@@ -58,6 +58,16 @@ inputs:
   github-token:
     description: "GitHub access token to push to protected branches"
     required: false
+  openai-base-url:
+    description: "OpenAI API base URL"    
+    required: false
+    default: "https://api.openai.com"
+  openai-token:
+    description: "OpenAI API
+    required: false
+  openai-model:
+    description: "OpenAI model"
+    required: false
   create-release:
     description: "Create a GitHub release using the GitHub CLI"
     required: false
@@ -90,6 +100,9 @@ runs:
         TINYSEMVER_GIT_USER_EMAIL: ${{ inputs.git-user-email }}
         GITHUB_TOKEN: ${{ inputs.github-token || github.token }}
         GITHUB_REPOSITORY: ${{ github.repository }}
+        OPENAI_BASE_URL: ${{ inputs.openai-base-url }}
+        OPENAI_TOKEN: ${{ inputs.openai-token }}
+        OPENAI_MODEL: ${{ inputs.openai-model }}
         TINYSEMVER_DEFAULT_BRANCH: ${{ inputs.default-branch }}
         TINYSEMVER_CREATE_RELEASE: ${{ inputs.create-release }}
       run: |

@@ -1,6 +1,6 @@
 ![TinySemVer Banner](https://github.com/ashvardanian/ashvardanian/blob/master/repositories/TinySemVer.jpg)
 
-__TinySemVer__ is a minimalistic [Semantic Versioning](https://semver.org/) package for projects following [Conventional Commits](https://www.conventionalcommits.org/) in a single short Python file.
+__TinySemVer__ is a minimalistic [Semantic Versioning](https://semver.org/) package for projects following [Conventional Commits](https://www.conventionalcommits.org/) in a single short Python file, capable of generating changelogs and release notes with the use of OpenAI-compatible LLM APIs, or without them.
 In plain English, if your commit messages look like `feat: add new feature` or `fix: bugfix`, this package will automate releasing new "GIT tags" based on the commit messages.
 Here is how to integrate it into your project CI:
 
