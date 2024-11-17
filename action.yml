@@ -63,7 +63,7 @@ inputs:
     required: false
     default: "https://api.openai.com"
   openai-token:
-    description: "OpenAI API
+    description: "OpenAI API"
     required: false
   openai-model:
     description: "OpenAI model"
