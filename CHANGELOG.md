@@ -212,3 +212,12 @@
 ### Patch
 
 - Improve: Exit with code `0`, if no commits are found
+
+## November 16, 2024: v2.0.8
+
+### Patch
+
+- Improve: Named tuples for commits (1bf5232)
+- Improve: Added function to convert the different commits into a message (4847361)
+- Improve: Added commit hashes to the end of the commit messages (533402b)
+- Improve: Added commit messages to the release notes (0f1c843)
