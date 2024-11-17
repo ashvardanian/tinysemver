@@ -236,3 +236,9 @@
 - Make: `requirements.txt` (e0b362c)
 - Fix: Missing quote in YAML (f822b2e)
 - Improve: OpenAI action args (c9f5845)
+
+## November 17, 2024: v2.1.1
+
+### Patch
+
+- Fix: Missing symbol (a1b2b8a)
