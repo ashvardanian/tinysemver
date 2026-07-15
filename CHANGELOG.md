@@ -274,3 +274,11 @@
 ### Patch
 
 - Make: Refresh CI (f1cc2e5)
+
+## July 15, 2026: v3.0.2
+
+### Patch
+
+- Fix: Ignore moving aliases when detecting the last tag (095cc2f)
+- Make: Gate versioning on tests and dogfood the moving tags (fac5e2f)
+- Fix: Warn when moving tags cannot be force-pushed (8a47b82)
