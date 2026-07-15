@@ -306,6 +306,25 @@ class TestGitOperations:
         tag = get_last_tag(temp_git_repo)
         assert tag == "v0.2.0"
 
+    def test_get_last_tag_ignores_moving_aliases(self, temp_git_repo):
+        # The moving `v0` and `v0.1` aliases point at the same commit as the real release and are
+        # newer annotated tags, exactly as `push_moving_tags` leaves them - they must never win.
+        subprocess.run(
+            ["git", "tag", "-a", "v0", "-m", "Update v0 to v0.1.0", "v0.1.0^{}"],
+            cwd=temp_git_repo,
+            check=True,
+            capture_output=True,
+        )
+        subprocess.run(
+            ["git", "tag", "-a", "v0.1", "-m", "Update v0.1 to v0.1.0", "v0.1.0^{}"],
+            cwd=temp_git_repo,
+            check=True,
+            capture_output=True,
+        )
+
+        tag = get_last_tag(temp_git_repo)
+        assert tag == "v0.1.0"
+
     def test_get_last_tag_no_tags(self, tmp_path):
         # Create a repo without tags
         subprocess.run(["git", "init"], cwd=tmp_path, check=True, capture_output=True)

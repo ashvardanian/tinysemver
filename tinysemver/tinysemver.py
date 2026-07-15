@@ -92,9 +92,22 @@ def print_to_console(message: str) -> None:
 
 
 def get_last_tag(repository_path: PathLike) -> str:
-    """Retrieve the last Git tag name from the repository."""
+    """Retrieve the last full-version Git tag name from the repository.
+
+    Only three-component tags count: the moving `v3` and `v3.0` aliases that `push_moving_tags`
+    maintains point at the same commits as real releases and must never be mistaken for one.
+    """
     result = subprocess.run(
-        ["git", "describe", "--tags", "--abbrev=0"],
+        [
+            "git",
+            "describe",
+            "--tags",
+            "--abbrev=0",
+            "--match",
+            "v[0-9]*.[0-9]*.[0-9]*",
+            "--match",
+            "[0-9]*.[0-9]*.[0-9]*",
+        ],
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
         cwd=repository_path,
