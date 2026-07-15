@@ -164,6 +164,7 @@ To enable it, add `push-moving-tags: 'true'` and ensure your token has force-pus
 
 When enabled, TinySemVer creates three tags: `v3` (major), `v3.0` (minor), and `v3.0.0` (specific).
 The default `GITHUB_TOKEN` typically lacks force-push permissions for protected branches.
+If a moving tag can't be pushed, TinySemVer prints a warning and keeps going — by that point the version commit and the exact tag are already published, so the aliases must never abort a completed release.
 
 ### Security Considerations
 

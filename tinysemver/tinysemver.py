@@ -310,32 +310,21 @@ def create_tag(
 
         print_to_console(f"[bold green]Pushed tag:[/bold green] {tag}")
 
-        # Optionally force-push the moving major and minor version tags
+        # Optionally force-push the moving major and minor version tags. By this point the version
+        # commit and the exact tag are already on the remote, so the release is complete and cannot
+        # be retried - a token without force-push rights must cost the aliases, never the release.
         if push_moving_tags:
-            major_tag = f"v{version[0]}"
-            minor_tag = f"v{version[0]}.{version[1]}"
-
-            # Force-push the major version tag (e.g., v2)
-            push_result = subprocess.run(
-                ["git", "push", url, major_tag, "--force"], cwd=repository_path, capture_output=True, env=env
-            )
-            if push_result.returncode != 0:
-                raise RuntimeError(
-                    f"Failed to push major tag '{major_tag}' to the remote repository: '{url}' with error: {push_result.stderr.decode('utf-8')}"
+            for moving_tag in (f"v{version[0]}", f"v{version[0]}.{version[1]}"):
+                push_result = subprocess.run(
+                    ["git", "push", url, moving_tag, "--force"], cwd=repository_path, capture_output=True, env=env
                 )
-
-            # Force-push the minor version tag (e.g., v2.1)
-            push_result = subprocess.run(
-                ["git", "push", url, minor_tag, "--force"], cwd=repository_path, capture_output=True, env=env
-            )
-            if push_result.returncode != 0:
-                raise RuntimeError(
-                    f"Failed to push minor tag '{minor_tag}' to the remote repository: '{url}' with error: {push_result.stderr.decode('utf-8')}"
-                )
-
-            print_to_console(f"[bold green]Pushed moving tags:[/bold green]")
-            print_to_console(f"[bold green]  - Major:[/bold green] {major_tag}")
-            print_to_console(f"[bold green]  - Minor:[/bold green] {minor_tag}")
+                if push_result.returncode != 0:
+                    print_to_console(
+                        f"[bold yellow]Warning:[/bold yellow] couldn't force-push moving tag '{moving_tag}': "
+                        f"{push_result.stderr.decode('utf-8').strip()} - the release itself is complete"
+                    )
+                else:
+                    print_to_console(f"[bold green]Pushed moving tag:[/bold green] {moving_tag} -> {tag}")
 
         # Create a release using GitHub CLI if available
         if create_release and github_repository:
