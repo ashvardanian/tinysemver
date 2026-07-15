@@ -64,7 +64,7 @@ jobs:
         with:
           token: ${{ secrets.TINYSEMVER_TOKEN }}
           branch: main-dev
-          unprotect_reviews: True
+          unprotect_reviews: False
           force: True
 
   publish_python:
