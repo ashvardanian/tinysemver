@@ -32,9 +32,7 @@ from tinysemver.tinysemver import (
 )
 
 
-# ============================================================================
-# Fixtures
-# ============================================================================
+# region Fixtures
 
 
 @pytest.fixture
@@ -83,9 +81,10 @@ def sample_file(tmp_path: Path) -> Path:
     return file_path
 
 
-# ============================================================================
-# Unit Tests - Version Parsing and Bumping
-# ============================================================================
+# endregion Fixtures
+
+
+# region Unit Tests - Version Parsing and Bumping
 
 
 class TestVersionParsing:
@@ -127,9 +126,10 @@ class TestVersionParsing:
         assert bump_version((5, 10, 20), "minor") == (5, 11, 0)
 
 
-# ============================================================================
-# Unit Tests - Commit Parsing
-# ============================================================================
+# endregion Unit Tests - Version Parsing and Bumping
+
+
+# region Unit Tests - Commit Parsing
 
 
 class TestCommitParsing:
@@ -237,9 +237,10 @@ class TestCommitParsing:
         assert "### Patch" in message
 
 
-# ============================================================================
-# Unit Tests - Regex Patching
-# ============================================================================
+# endregion Unit Tests - Commit Parsing
+
+
+# region Unit Tests - Regex Patching
 
 
 class TestRegexPatching:
@@ -302,9 +303,10 @@ class TestRegexPatching:
         assert content.count('dep = "1.2.3"') == 1
 
 
-# ============================================================================
-# Unit Tests - Git Operations
-# ============================================================================
+# endregion Unit Tests - Regex Patching
+
+
+# region Unit Tests - Git Operations
 
 
 class TestGitOperations:
@@ -394,9 +396,10 @@ class TestGitOperations:
         assert "+line2" in diff
 
 
-# ============================================================================
-# Integration Tests - Full Workflow
-# ============================================================================
+# endregion Unit Tests - Git Operations
+
+
+# region Integration Tests - Full Workflow
 
 
 class TestFullWorkflow:
@@ -623,9 +626,10 @@ class TestFullWorkflow:
             )
 
 
-# ============================================================================
-# Edge Case Tests
-# ============================================================================
+# endregion Integration Tests - Full Workflow
+
+
+# region Edge Case Tests
 
 
 class TestEdgeCases:
@@ -701,10 +705,14 @@ class TestEdgeCases:
             )
 
 
-# ============================================================================
-# Run tests
-# ============================================================================
+# endregion Edge Case Tests
+
+
+# region Run tests
 
 
 if __name__ == "__main__":
     pytest.main([__file__, "-v", "--tb=short"])
+
+
+# endregion Run tests
