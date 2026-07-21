@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "tinysemver"
-version = "3.0.2"
+version = "3.0.3"
 description = "Semantic-Versioning... that doesn't need 300,000 lines of JS"
 readme = "README.md"
 license = { file = "LICENSE" }

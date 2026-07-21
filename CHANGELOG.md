@@ -282,3 +282,11 @@
 - Fix: Ignore moving aliases when detecting the last tag (095cc2f)
 - Make: Gate versioning on tests and dogfood the moving tags (fac5e2f)
 - Fix: Warn when moving tags cannot be force-pushed (8a47b82)
+
+## July 21, 2026: v3.0.3
+
+### Patch
+
+- Docs: Show the uvx and uv-tool one-liners beside pip (48c96a0)
+- Fix: Bump every match of an update-version-in pattern, not just the first (4dce942)
+- Make: Stop unprotecting reviews in the post-release rebase (0c59782)
