@@ -384,8 +384,15 @@ def patch_with_regex(
     new_version: str,
     dry_run: bool = False,
     verbose: bool = False,
+    count: int = 1,
 ) -> None:
-    """Update a file by replacing the first matched group of every RegEx match with a new version."""
+    """Update a file by replacing the first capturing group of its matches with a new version.
+
+    `count` bounds how many matches are rewritten, following `re.sub` semantics: the default `1`
+    rewrites only the first - which suits a single-line version file and a catch-all `(.*)` pattern
+    whose empty-string matches would otherwise duplicate the version - while `0` rewrites every match,
+    what a README that lists the dependency more than once needs so no example pins a stale version.
+    """
 
     assert os.path.exists(file_path), f"File missing: {file_path}"
     with open(file_path, "r") as file:
@@ -406,13 +413,13 @@ def patch_with_regex(
     # Compile the regex pattern with multiline support
     regex_pattern = re.compile(regex_pattern, re.MULTILINE)
     matches = list(re.finditer(regex_pattern, old_content))
-    new_content = re.sub(regex_pattern, replace_first_group, old_content, count=1)
+    new_content = re.sub(regex_pattern, replace_first_group, old_content, count=count)
 
     non_empty_matches = [m for m in matches if len(m.group(0).strip())]
     assert len(non_empty_matches) > 0, f"No matches found in: {file_path}"
 
     for match in non_empty_matches:
-        match_line = old_content.count("\n", 0, match.pos) + 1
+        match_line = old_content.count("\n", 0, match.start()) + 1
         old_slice = match.group(0)
         new_slice = re.sub(regex_pattern, replace_first_group, old_slice, count=1)
 
@@ -579,18 +586,20 @@ def bump(
             with open(changelog_file, "a") as file:
                 file.write(changes)
 
+    # `count=0`: a user pattern may match several lines - a README listing the dependency more than
+    # once - and every one must move, unlike the single-line version file patched above.
     if update_version_in:
         for file_path, regex_pattern in update_version_in:
-            patch_with_regex(file_path, regex_pattern, new_version_str, dry_run=dry_run, verbose=verbose)
+            patch_with_regex(file_path, regex_pattern, new_version_str, dry_run=dry_run, verbose=verbose, count=0)
     if bump_type in ["major"] and update_major_version_in:
         for file_path, regex_pattern in update_major_version_in:
-            patch_with_regex(file_path, regex_pattern, str(new_version[0]), dry_run=dry_run, verbose=verbose)
+            patch_with_regex(file_path, regex_pattern, str(new_version[0]), dry_run=dry_run, verbose=verbose, count=0)
     if bump_type in ["major", "minor"] and update_minor_version_in:
         for file_path, regex_pattern in update_minor_version_in:
-            patch_with_regex(file_path, regex_pattern, str(new_version[1]), dry_run=dry_run, verbose=verbose)
+            patch_with_regex(file_path, regex_pattern, str(new_version[1]), dry_run=dry_run, verbose=verbose, count=0)
     if bump_type in ["major", "minor", "patch"] and update_patch_version_in:
         for file_path, regex_pattern in update_patch_version_in:
-            patch_with_regex(file_path, regex_pattern, str(new_version[2]), dry_run=dry_run, verbose=verbose)
+            patch_with_regex(file_path, regex_pattern, str(new_version[2]), dry_run=dry_run, verbose=verbose, count=0)
 
     if not dry_run:
         create_tag(
